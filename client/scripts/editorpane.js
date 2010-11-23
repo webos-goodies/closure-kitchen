@@ -44,7 +44,7 @@ closurekitchen.EditorPane = function(project, opt_domHelper) {
   this.toolbar_.addChild(builder.buildToolbarButton(ActionID.UNDO));
   this.toolbar_.addChild(builder.buildToolbarButton(ActionID.REDO));
   this.toolbar_.addChild(builder.buildToolbarButton(ActionID.UPDATE_PREVIEW));
-  this.toolbar_.addChild(builder.buildToolbarButton(ActionID.PUBLISH_PROJECT));
+  this.toolbar_.addChild(builder.buildToolbarButton(ActionID.PUBLISH_CURRENT_PROJECT));
 
   this.tabBar_ = new TabBar(TabBar.Location.TOP, TabBarRenderer.getInstance(), opt_domHelper);
   this.addChild(this.tabBar_);

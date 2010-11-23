@@ -46,6 +46,7 @@ closurekitchen.Project.Type = {
  */
 closurekitchen.Project.Format = {
   ALL:     'ALL',
+  RENAME:  'RENAME',
   PUBLISH: 'PUBLISH',
   COMPILE: 'COMPILE'
 };
@@ -285,7 +286,7 @@ closurekitchen.Project.prototype.isNew = function() {
  * @returns {boolean} If true, this project has been fetched. Otherwise false.
  */
 closurekitchen.Project.prototype.isFetched = function() {
-  return goog.isString(this.jscode_) && goog.isString(this.htmlcode_);
+  return this.isNew() || (goog.isString(this.jscode_) && goog.isString(this.htmlcode_));
 };
 
 /**
@@ -335,6 +336,11 @@ closurekitchen.Project.prototype.serialize = function(format) {
 	obj = { 'n': this.name_, 'j': this.jscode_, 'h': this.htmlcode_ };
   } else if(format == closurekitchen.Project.Format.COMPILE) {
 	obj = { 'j': this.jscode_ };
+  } else if(format == closurekitchen.Project.Format.RENAME) {
+	if(this.isNew())
+	  obj = { 'n': this.name_, 'j': this.jscode_, 'h': this.htmlcode_ };
+	else
+	  obj = { 'n': this.name_ };
   } else {
 	goog.asserts.fail('Unknown serialization format.');
   }
@@ -372,7 +378,7 @@ closurekitchen.Project.prototype.load = function(data, opt_format) {
  * @param {Object=} opt_scope The scope of the callback.
  */
 closurekitchen.Project.prototype.fetch = function(opt_callback, opt_scope) {
-  if(this.isNew() || this.isFetched() || closurekitchen.Project.LOCAL_MODE) {
+  if(this.isFetched() || closurekitchen.Project.LOCAL_MODE) {
 	closurekitchen.Project.initiateCallback_(opt_callback, opt_scope, [this]);
 	return;
   }

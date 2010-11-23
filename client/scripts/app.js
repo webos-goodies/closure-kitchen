@@ -335,12 +335,12 @@ closurekitchen.App.prototype.onAction_ = function(e) {
 	if(this.confirmToClose_()) {
 	  this.actionOpenProject(data);
 	}
-  } else if(actionId == ActionID.PUBLISH_PROJECT) {
-	this.actionPublishProject(data);
   } else if(actionId == ActionID.RENAME_PROJECT) {
 	this.actionRenameProject_(data);
   } else if(actionId == ActionID.SAVE_CURRENT_PROJECT) {
 	this.actionSaveCurrentProject_();
+  } else if(actionId == ActionID.PUBLISH_CURRENT_PROJECT) {
+	this.actionPublishCurrentProject(data);
   } else if(actionId == ActionID.UPDATE_PREVIEW) {
 	this.actionUpdatePreview_();
   } else {
@@ -366,40 +366,31 @@ closurekitchen.App.prototype.actionOpenProject = function(projectId) {
 };
 
 /**
- * Processes PUBLISH_PROJECT action.
- * @param {string} projectId Project ID to publish. null means the current project.
- * @private
- */
-closurekitchen.App.prototype.actionPublishProject = function(projectId) {
-  var project = projectId ? Project.findById(projectId) : this.currentProject_;
-  goog.asserts.assert(
-	project, 'Initiated PUBLISH_PROJECT action with an invalid project id(%s).', projectId);
-  if(this.user_.isAdmin()) {
-	project.put(Project.Format.PUBLISH);
-  } else {
-	closurekitchen.App.logger_.severe(
-	  'Initiated PUBLISH_PROJECT command without admin privilege.');
-  }
-};
-
-/**
  * Processes RENAME_PROJECT action.
- * @param {string} projectId Project ID to publish. null means the current project.
+ * @param {string} projectId Project ID to rename. null means the current project.
  * @private
  */
 closurekitchen.App.prototype.actionRenameProject_ = function(projectId) {
   var project = projectId ? Project.findById(projectId) : this.currentProject_;
   goog.asserts.assert(
-	project, 'Initiated PUBLISH_PROJECT action with an invalid project id(%s).', projectId);
-
+	project, 'Initiated PUBLISH_CURRENT_PROJECT action with an invalid project id(%s).', projectId);
+  if(!projectId && !project.isFetched())
+	return;
   if(this.user_.isUser()) {
 	if(!this.user_.isAdmin() && !project.isPrivate()) {
-	  this.openProject_(project.duplicateAsPrivate());
+	  if(projectId)
+		return;
+	  project = project.duplicateAsPrivate();
+	  this.openProject_(project);
 	}
-	this.editorPane_.exportToProject(project);
-	this.saveProjectLocally_(project);
+	if(!projectId) {
+	  this.editorPane_.exportToProject(project);
+	  this.saveProjectLocally_(project);
+	}
 	this.projNameDialog_.openDialog(
-	  project, this.editorPane_.getDisplayProjectName(), this.onProjNameEntered_, this);
+	  project,
+	  project.getName() || this.editorPane_.getDisplayProjectName(),
+	  this.onProjNameEntered_, this);
   } else {
 	closurekitchen.App.logger_.severe(
 	  'Initiated RENAME_PROJECT command by guest.');
@@ -414,11 +405,7 @@ closurekitchen.App.prototype.actionRenameProject_ = function(projectId) {
  */
 closurekitchen.App.prototype.onProjNameEntered_ = function(project, text) {
   project.setName(text);
-  project.put(Project.Format.ALL, this.onRenameProjectCompleted_, this);
-  if(this.currentProject_.getId() == project.getId()) {
-	this.isModified_ = false;
-	this.updateComponents_();
-  }
+  project.put(Project.Format.RENAME, this.onRenameProjectCompleted_, this);
 };
 
 /**
@@ -458,6 +445,21 @@ closurekitchen.App.prototype.actionSaveCurrentProject_ = function() {
   } else {
 	closurekitchen.App.logger_.severe(
 	  'Initiated SAVE_CURRENT_PROJECT command by guest.');
+  }
+};
+
+/**
+ * Processes PUBLISH_CURRENT_PROJECT action.
+ * @private
+ */
+closurekitchen.App.prototype.actionPublishCurrentProject = function() {
+  if(this.user_.isAdmin()) {
+	this.editorPane_.exportToProject(this.currentProject_);
+	this.saveProjectLocally_(this.currentProject_);
+	this.currentProject_.put(Project.Format.PUBLISH);
+  } else {
+	closurekitchen.App.logger_.severe(
+	  'Initiated PUBLISH_CURRENT_PROJECT command without admin privilege.');
   }
 };
 

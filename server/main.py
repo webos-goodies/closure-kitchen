@@ -279,7 +279,7 @@ class ProjectsHandler(BaseHandler):
   def put(self):
     key      = self.get_project_id()
     req_body = simplejson.loads(self.request.body)
-    self.validate_request(req_body, ('j', 'h'))
+    self.validate_request(req_body, ())
     if key[0] == Project.PREFIX_PRIVATE:
       db.run_in_transaction(self.put_private, key, req_body)
     elif users.is_current_user_admin():

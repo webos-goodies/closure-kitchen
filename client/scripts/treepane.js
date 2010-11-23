@@ -13,6 +13,7 @@ goog.require('closurekitchen.Project');
 
 goog.scope(function() {
 var ActionID = closurekitchen.ActionID;
+var Project  = closurekitchen.Project;
 
 /**
  * A component that contains a tree view.
@@ -23,7 +24,8 @@ var ActionID = closurekitchen.ActionID;
 closurekitchen.TreePane = function(opt_domHelper) {
   goog.base(this, opt_domHelper);
 
-  this.treeKH_ = new goog.events.KeyHandler();
+  this.treeKH_    = new goog.events.KeyHandler();
+  this.appStatus_ = {};
 
   var config = goog.object.clone(goog.ui.tree.TreeControl.defaultConfig);
   config.cleardotPath = 'files/images/cleardot.gif';
@@ -33,7 +35,7 @@ closurekitchen.TreePane = function(opt_domHelper) {
   this.addChild(this.treeControl_);
 
   var projects = [];
-  closurekitchen.Project.forEachEntity(function(project) {
+  Project.forEachEntity(function(project) {
 	projects[projects.length] = project;
   }, this);
   projects.sort(function(a, b){ return goog.string.numerateCompare(a.getName(), b.getName()) });
@@ -46,8 +48,8 @@ closurekitchen.TreePane = function(opt_domHelper) {
 
   var builder = new closurekitchen.ComponentBuilder(opt_domHelper);
   this.contextMenu_ = new goog.ui.PopupMenu(opt_domHelper);
-  this.contextMenu_.addChild(builder.buildMenuItem(ActionID.RENAME_PROJECT), true);
-  this.contextMenu_.addChild(builder.buildMenuItem(ActionID.PUBLISH_PROJECT), true);
+  this.contextMenu_.addChild(builder.buildMenuItem(ActionID.OPEN_PROJECT),    true);
+  this.contextMenu_.addChild(builder.buildMenuItem(ActionID.RENAME_PROJECT),  true);
 };
 goog.inherits(closurekitchen.TreePane, goog.ui.Component);
 
@@ -102,6 +104,13 @@ closurekitchen.TreePane.prototype.publicFolder_;
  * @private
  */
 closurekitchen.TreePane.prototype.treeKH_;
+
+/**
+ * Application status cache.
+ * @type {Object}
+ * @private
+ */
+closurekitchen.TreePane.prototype.appStatus_;
 
 /**
  * Returns the node related with specified project.
@@ -183,36 +192,13 @@ closurekitchen.TreePane.prototype.addPublicProject_ = function(project) {
 };
 
 /**
- * An event handler for double click events on the tree view.
- * @param {goog.events.Event} e The event object.
- */
-closurekitchen.TreePane.prototype.onDblClickTreeView_ = function(e) {
-  this.dispatchActionEvent_(ActionID.OPEN_PROJECT);
-};
-
-/**
- * An event handler for key events on the tree view.
- * @param {goog.events.KeyEvent} e The event object.
- */
-closurekitchen.TreePane.prototype.onKeyTreeView_ = function(e) {
-  if(e.keyCode == goog.events.KeyCodes.ENTER &&
-	 this.dispatchActionEvent_(ActionID.OPEN_PROJECT))
-  {
-    e.preventDefault();
-  }
-}
-
-/**
- * An event handler for ACTION event from the context menu.
- * @param {goog.events.Event} e The event object.
+ * Returns the selected project id.
+ * @return {?string} the selected project.
  * @private
  */
-closurekitchen.TreePane.prototype.onMenuAction_ = function(e) {
-  var model    = e.target.getModel();
-  var actionId = model && model.actionId;
-  if(actionId) {
-	this.dispatchActionEvent_(actionId);
-  }
+closurekitchen.TreePane.prototype.getSelectedProjectId = function() {
+  var node = this.treeControl_.getSelectedItem();
+  return node && node.getModel();
 };
 
 /**
@@ -222,8 +208,7 @@ closurekitchen.TreePane.prototype.onMenuAction_ = function(e) {
  * @private
  */
 closurekitchen.TreePane.prototype.dispatchActionEvent_ = function(actionId) {
-  var node      = this.treeControl_.getSelectedItem();
-  var projectId = node && node.getModel();
+  var projectId = this.getSelectedProjectId();
   if(projectId) {
 	closurekitchen.ActionEvent.dispatch(this, actionId, projectId);
 	closurekitchen.TreePane.logger_.info(
@@ -256,6 +241,65 @@ closurekitchen.TreePane.prototype.resize = function(size) {
   goog.style.setSize(this.treeControl_.getElement().parentNode, size);
 };
 
+/**
+ * Returns a status bundle.
+ * @return {closurekitchen.StatusBundle} Status bundle.
+ * @private
+ */
+closurekitchen.TreePane.prototype.createStatusBundle_ = function() {
+  var projectId = this.getSelectedProjectId();
+  var project   = projectId && Project.findById(projectId);
+  this.appStatus_.isModified = false;
+  if(project) {
+	this.appStatus_.isPriv = project.isPrivate();
+  }
+  return new closurekitchen.StatusBundle(this.appStatus_);
+};
+
+/**
+ * An event handler for double click events on the tree view.
+ * @param {goog.events.Event} e The event object.
+ */
+closurekitchen.TreePane.prototype.onDblClickTreeView_ = function(e) {
+  this.dispatchActionEvent_(ActionID.OPEN_PROJECT);
+};
+
+/**
+ * An event handler for key events on the tree view.
+ * @param {goog.events.KeyEvent} e The event object.
+ */
+closurekitchen.TreePane.prototype.onKeyTreeView_ = function(e) {
+  if(e.keyCode == goog.events.KeyCodes.ENTER &&
+	 this.dispatchActionEvent_(ActionID.OPEN_PROJECT))
+  {
+    e.preventDefault();
+  }
+}
+
+/**
+ * An event handler called before show the context menu.
+ * @param {goog.events.Event} e The event object.
+ * @private
+ */
+closurekitchen.TreePane.prototype.onBeforeShowMenu_ = function(e) {
+  bundle = this.createStatusBundle_();
+  if(this.contextMenu_)
+	this.contextMenu_.updateByStatusBundle(bundle);
+};
+
+/**
+ * An event handler for ACTION event from the context menu.
+ * @param {goog.events.Event} e The event object.
+ * @private
+ */
+closurekitchen.TreePane.prototype.onMenuAction_ = function(e) {
+  var model    = e.target.getModel();
+  var actionId = model && model.actionId;
+  if(actionId) {
+	this.dispatchActionEvent_(actionId);
+  }
+};
+
 /** @inheritDoc */
 closurekitchen.TreePane.prototype.createDom = function() {
   var dom          = this.getDomHelper();
@@ -277,6 +321,7 @@ closurekitchen.TreePane.prototype.enterDocument = function() {
   this.getHandler().
     listen(treeEl,            goog.events.EventType.DBLCLICK,       this.onDblClickTreeView_).
     listen(this.contextMenu_, goog.ui.Component.EventType.ACTION,   this.onMenuAction_).
+    listen(this.contextMenu_, goog.ui.Menu.EventType.BEFORE_SHOW,   this.onBeforeShowMenu_).
     listen(this.treeKH_,      goog.events.KeyHandler.EventType.KEY, this.onKeyTreeView_);
 };
 
@@ -292,6 +337,13 @@ closurekitchen.TreePane.prototype.disposeInternal = function() {
   goog.base(this, 'disposeInternal');
   this.contextMenu_ && this.contextMenu_.dispose();
   this.contextMenu_ = null;
+};
+
+/** @inheritDoc */
+closurekitchen.TreePane.prototype.updateByStatusBundle = function(bundle) {
+  this.appStatus_        = bundle.getAppStatus();
+  this.appStatus_.isTree = true;
+  goog.base(this, 'updateByStatusBundle', this.createStatusBundle_());
 };
 
 });

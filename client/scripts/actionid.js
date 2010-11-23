@@ -10,8 +10,8 @@ closurekitchen.ActionID = {
   NEW_PROJECT:             'NEW_PROJECT',
   OPEN_PROJECT:            'OPEN_PROJECT',
   RENAME_PROJECT:          'RENAME_CURRENT_PROJECT',
-  PUBLISH_PROJECT:         'PUBLISH_PROJECT',
   SAVE_CURRENT_PROJECT:    'SAVE_CURRENT_PROJECT',
+  PUBLISH_CURRENT_PROJECT: 'PUBLISH_CURRENT_PROJECT',
   UNDO:                    'UNDO',
   REDO:                    'REDO',
   UPDATE_PREVIEW:          'UPDATE_PREVIEW',
@@ -40,20 +40,25 @@ closurekitchen.ActionMetaData[closurekitchen.ActionID.NEW_PROJECT] = {
   content: goog.getMsg('New Project'),
   tooltip: goog.getMsg('Create a new project.')
 };
+closurekitchen.ActionMetaData[closurekitchen.ActionID.OPEN_PROJECT] = {
+  type:    closurekitchen.ActionType.ONE_SHOT,
+  content: goog.getMsg('Open'),
+  tooltip: goog.getMsg('Open this project.')
+};
 closurekitchen.ActionMetaData[closurekitchen.ActionID.RENAME_PROJECT] = {
   type:    closurekitchen.ActionType.ONE_SHOT,
   content: goog.getMsg('Rename'),
   tooltip: goog.getMsg('Rename this project.')
 };
-closurekitchen.ActionMetaData[closurekitchen.ActionID.PUBLISH_PROJECT] = {
-  type:    closurekitchen.ActionType.ONE_SHOT,
-  content: goog.getMsg('Publish'),
-  tooltip: goog.getMsg('Publish this project.')
-};
 closurekitchen.ActionMetaData[closurekitchen.ActionID.SAVE_CURRENT_PROJECT] = {
   type:    closurekitchen.ActionType.ONE_SHOT,
   content: goog.getMsg('Save'),
   tooltip: goog.getMsg('Save this project.')
+};
+closurekitchen.ActionMetaData[closurekitchen.ActionID.PUBLISH_CURRENT_PROJECT] = {
+  type:    closurekitchen.ActionType.ONE_SHOT,
+  content: goog.getMsg('Publish'),
+  tooltip: goog.getMsg('Publish this project.')
 };
 closurekitchen.ActionMetaData[closurekitchen.ActionID.UNDO] = {
   type:    closurekitchen.ActionType.ONE_SHOT,
