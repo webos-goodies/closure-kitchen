@@ -1,0 +1,109 @@
+@import "closure-library/closure/goog/css/common.css";
+@import "closure-library/closure/goog/css/button.css";
+@import "closure-library/closure/goog/css/menu.css";
+@import "closure-library/closure/goog/css/menubutton.css";
+@import "closure-library/closure/goog/css/menuitem.css";
+@import "closure-library/closure/goog/css/menuseparator.css";
+@import "closure-library/closure/goog/css/toolbar.css";
+@import "closure-library/closure/goog/css/tree.css";
+@import "closure-library/closure/goog/css/tab.css";
+@import "closure-library/closure/goog/css/tabbar.css";
+@import "closure-library/closure/goog/css/dialog.css";
+@import "closure-library/closure/goog/css/colormenubutton.css";
+@import "closure-library/closure/goog/css/palette.css";
+@import "closure-library/closure/goog/css/colorpalette.css";
+@import "closure-library/closure/goog/css/editor/dialog.css";
+@import "closure-library/closure/goog/css/editor/linkdialog.css";
+@import "closure-library/closure/goog/css/editortoolbar.css";
+
+/* ページスクロールバー非表示 */
+html { overflow: hidden; }
+body { overflow: hidden; margin: 4px; }
+
+/* タイトル */
+#title {
+	font-family: 'Droid Serif', arial, serif;
+	font-size: 40px; margin: 0px;
+	font-weight: bold; font-style: italic;
+	padding-bottom: 20px;
+	color: #246;
+	text-shadow: 2px 2px 1px #aaa, -1px -1px 0px #acf;
+}
+
+/* SplitPane */
+.goog-splitpane-first-container, .goog-splitpane-second-container {
+  overflow: hide;
+}
+.goog-splitpane-first-container .goog-splitpane-first-container {
+  border: 1px solid #6b90da;
+}
+.goog-splitpane-first-container .goog-splitpane-second-container {
+  border: none;
+}
+.goog-splitpane-handle {
+  background: #ccc; border: solid 1px white;
+}
+.goog-splitpane-handle-horizontal {
+  cursor: col-resize; border-style: none solid;
+}
+.goog-splitpane-handle-vertical {
+  cursor: row-resize; border-style: solid none;
+}
+
+/* ツリーコントロール */
+.leftpane-tree  { overflow: auto; }
+.goog-tree-root { margin: 4px; }
+.selected .goog-tree-item-label { background-color: rgb(192,192,192); }
+
+/* タブバー */
+.editorpane-tabbar     { padding-left: 4px; font-size: 12px; }
+.editorpane-tabcontent { border: 1px solid #6b90da; overflow: auto; }
+
+.editorpane-projname {
+	line-height: 1; font-size: 24px; font-weight: bold; padding: 0 0 4px 0; display: none;
+}
+.editorpane-projname span {
+	border: solid 1px white; padding: 0px 8px 0px 8px; cursor: pointer;
+}
+.editorpane-projname span:hover {
+	border: solid 1px #888; background-color: #ffc;
+}
+
+/* 保存ダイアログ */
+.modal-dialog-bg         { z-index: 10; }
+.modal-dialog            { z-index: 11; font-size: 16px; }
+.modal-dialog-title      { padding: 4px 8px; }
+.modal-dialog-title-text { font-size: 16px; }
+.modal-dialog-userInput  { font-size: 16px; width: 90%; }
+
+/* ユーザー名とログアウトボタン */
+#user-info {
+  font-size: 14px; text-align:right; z-index: 1;
+  position: absolute; right: 4px; top: 0;
+}
+
+/* アクセスインジケータ */
+#xhr-indicator {
+  font-weight: bold; color: white; background-color: red;
+  position: absolute; left: 50%; top: -4px; z-index: 2;
+  width: 200px; margin-left: -100px; padding: 8px 0 4px 0;
+  text-align: center;
+  border-radius: 0 0 8px 8px;
+  -moz-border-radius: 0 0 8px 8px;
+  box-shadow: 4px 4px 4px #ccc;
+  -webkit-box-shadow: 4px 4px 4px #ccc;
+  -moz-box-shadow: 4px 4px 4px #ccc;
+}
+
+/* CodeMirror */
+.CodeMirror-line-numbers {
+	margin: 0;
+	padding: .4em;
+	font-family: monospace;
+	font-size: 10pt;
+	color: black;
+	background-color: #eee;
+	text-align:right;
+	width: 2em;
+	border-right: solid 1px black;
+}

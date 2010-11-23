@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <title>Closure Kitchen</title>
+  <link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Droid+Serif:bolditalic&subset=latin">
+  <!--[del]-->
+  <link rel="stylesheet" type="text/css" href="style.css">
+  <script type="text/javascript" src="closure-library/closure/goog/base.js"></script>
+  <script type="text/javascript" src="deps.js"></script>
+  <script type="text/javascript" src="files/codemirror/codemirror.js"></script>
+  <script type="text/javascript">
+	var startupInfo = {
+	  userType: 'guest',
+	  samples: {
+	    '1': { 'n': 'Project1' },
+	    '2': { 'n': 'Project2' }
+	  },
+	  projects: {}
+    };
+  </script>
+  <!--[/del]-->
+  <!--[uncomment]
+  <script type="text/javascript">
+	<%= include_js('files/codemirror/codemirror.js') %>
+	var startupInfo = {
+	  userType:  '{{user_type}}',
+	  projectId: {{project_id}},
+	  samples:   {{samples}},
+	  projects:  {{projects}}
+    };
+  </script>
+  <style type="text/css">
+	<%= compress_css('style.css') %>
+  </style>
+  -->
+</head>
+<body>
+  <h1 id="title">Closure Kitchen</h1>
+
+  <!-- このdiv内にアプリケーションUIを表示する -->
+  <div id="main"></div>
+
+  <!-- ユーザー名（メールアドレス）とログアウトボタン -->
+  <!--[uncomment]
+  <div id="user-info">
+	{% if user_name %}
+      <b>{{user_name|escape}}</b> | <a href="{{logout_url|escape}}">ログアウト</a>
+	{% else %}
+      <a href="{{login_url|escape}}">ログイン</a>
+	{% endif %}
+  </div>
+  -->
+
+  <!-- アクセスインジケータ -->
+  <div id="xhr-indicator">アクセス中</div>
+
+  <!--[del]-->
+  <script type="text/javascript">
+    goog.require('closurekitchen.App');
+  </script>
+  <!--[/del]-->
+  <!--[uncomment]
+  <script type="text/javascript">
+	<%= compile_closure_app('closurekitchen.App', nil, 'scripts') %>
+  </script>
+  -->
+</body>
+</html>

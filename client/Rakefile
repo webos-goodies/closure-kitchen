@@ -1,0 +1,216 @@
+# -*- mode:ruby -*-
+
+require 'erb'
+
+PYTHON          = 'python'
+JAVA            = 'java'
+CLOSURECOMPILER = File.expand_path('../bin/compiler.jar')
+YUICOMPRESSOR   = File.expand_path('../bin/yuicompressor.jar')
+
+CLOSURE_LIB_DIR = File.expand_path('closure-library')
+DEPSWRITER      = File.join(CLOSURE_LIB_DIR, 'closure/bin/build/depswriter.py')
+CLOSUREBUILDER  = File.join(CLOSURE_LIB_DIR, 'closure/bin/build/closurebuilder.py')
+DEPS_FILE       = 'deps.js'
+SCRIPT_DIR      = 'scripts'
+STATIC_DIR      = 'files'
+EXTERNS         = ['externs/codemirror.js']
+
+SERVER_DIR      = File.expand_path('../server');
+
+class HtmlOptimizer
+
+  def initialize(config = {})
+    @java            = config[:java]            || 'java'
+    @python          = config[:python]          || 'python'
+    @yuicompressor   = config[:yuicompressor]   || 'yuicompressor.jar'
+    @closurecompiler = config[:closurecompiler] || 'compiler.jar'
+    @closurelibrary  = config[:closurelibrary]  || 'closure-library'
+    @closurebuilder  = (config[:closurebuilder] ||
+                        File.join(@closurelibrary, 'closure/bin/build/closurebuilder.py'))
+    @closureopts     = config[:closureopts]     || ''
+    @css_url_map     = config[:css_url_map]     || []
+    @optimize        = config[:optimize]
+    @pre_tag_regex   = nil
+
+    pre_tag = config[:pre_tag] ? [*config[:pre_tag]] : ['pre', 'script', 'title']
+    unless pre_tag.empty?
+      pre_tag = pre_tag.map{|s| Regexp.quote(s) }.join('|')
+      @pre_tag_regex = /<(#{pre_tag})[\s>].*?<\/\1\s*>/mui
+    end
+  end
+
+  def render_str(str)
+    str = str.gsub(/<!--\[del\].*?\[\/del\]-->/mu, '')
+    str = str.gsub(/<!--\[uncomment\](.*?)-->/mu){ $1 }
+    erb = ERB.new(str)
+    optimize_html(erb.result(get_binding()))
+  end
+
+  def render_file(path)
+    str = IO.read(path)
+    Dir.chdir(File.dirname(path)) do
+      render_str(str)
+    end
+  end
+
+  def include_file(path)
+    IO.read(path)
+  end
+
+  def include_css(path)
+    dir = File.expand_path(File.dirname(path))
+    css = IO.read(path)
+    css = css.gsub(/\/\*.*?\*\//mu, '')
+    css = css.gsub(/^@import(?:\s+url\()?\s*[\"\']?([^\"\'\)]+)[\"\']?\s*\)?([^;]*);/u) do
+      text, url, media = $0, $1.strip, $2.strip
+      if /^(?:https?:\/)\//u === url
+        text
+      else
+        sub_css = include_css(File.join(dir, url))
+        unless media.empty?
+          sub_css = "@media #{media} {\n#{sub_css}\n}\n"
+        end
+        sub_css
+      end
+    end
+    css = css.gsub(/(\s)url\(\s*[\"\']?([^\"\'\)]+)[\"\']?\s*\)/u) do
+      space, url = $1, $2.strip
+      @css_url_map.each do |pattern, replace|
+        if pattern === url
+          url.gsub!(pattern, replace)
+          break
+        end
+      end
+      "#{space}url(\"#{url}\")"
+    end
+  end
+
+  def compress_css(*paths)
+    code = paths.map{|path| include_css(path) }.join("\n")
+    code = exec([@java, '-jar', @yuicompressor, '--type', 'css'], code) if @optimize
+    code
+  end
+
+  def escape_js(str)
+    str.gsub(/<\/(script)/ui, '<\\/\1')
+  end
+
+  def include_js(path)
+    escape_js(IO.read(path))
+  end
+
+  def compress_js(*paths)
+    code = paths.map{|path| IO.read(path) }.join("\n")
+    code = exec([@java, '-jar', @yuicompressor, '--type', 'js'], code) if @optimize
+    escape_js(code)
+  end
+
+  def build_closure_opts(opts)
+    opts.map do |key, values|
+      [*values].map{|v| "#{key}=#{v}" }
+    end
+  end
+
+  def compile_js(compiler_opts={}, *paths)
+    if @optimize
+      opts = build_closure_opts(@closureopts.merge(compiler_opts))
+      code = exec([@java, '-jar', @closurecompiler, opts,
+                   paths.map{|path| ['--js', path] }])
+    else
+      code = paths.map{|path| IO.read(path) }.join("\n")
+    end
+    escape_js(code)
+  end
+
+  def compile_closure_app(namespace, compiler_opts=nil, *paths)
+    cmd  = [@python, @closurebuilder, '-n', namespace, "--root=#{@closurelibrary}",
+            paths.map{|path| "--root=#{path}" }]
+    code = ''
+    if @optimize
+      opts = build_closure_opts(@closureopts.merge(compiler_opts || {}))
+      code = exec([cmd, '-o', 'compiled', '-c', @closurecompiler,
+                   opts.map{|s| ['-f', s] }])
+    else
+      opts = build_closure_opts(@closureopts.merge(compiler_opts || {}))
+      code = exec([cmd, '-o', 'script'])
+    end
+    escape_js(code)
+  end
+
+  def optimize_html(html)
+    html = html.dup
+    if @optimize
+      html.gsub!(/<\!--.*?-->/mu, '')
+      html.gsub!(/[~^]/u) {|c| c == '~' ? '^T~' : '^E~' }
+      preserved = []
+      if @pre_tag_regex
+        html.gsub!(@pre_tag_regex) do |pre|
+          preserved << pre
+          "^#{preserved.size-1}~"
+        end
+      end
+      html.gsub!(/<[A-Za-z](?:[^>]*)>/u) do |tag|
+        tag.gsub(/([\"\']).+?\1/mui) do |attr|
+          preserved << attr
+          "^#{preserved.size-1}~"
+        end
+      end
+      html.gsub!(/\s+/u, ' ')
+      html.gsub!(/\^(\d+)~/u) { preserved[$1.to_i] }
+      html.gsub!(/\^([TE])~/u) { $1 == 'T' ? '~' : '^' }
+    end
+    html
+  end
+
+  def get_binding()
+    binding
+  end
+
+  def exec(cmd, stdin = '')
+    stdout = ''
+    IO.popen([*cmd].flatten.map{|s| '"'+s+'"'}.join(' '), 'r+') do |pipe|
+      pipe.write(stdin)
+      pipe.close_write
+      stdout = pipe.read
+    end
+    stdout
+  end
+
+end
+
+task :deps do
+  sh ["#{PYTHON} #{DEPSWRITER}",
+      "--root_with_prefix='#{SCRIPT_DIR} ../../../#{SCRIPT_DIR}'",
+      "--output_file=#{DEPS_FILE}"].flatten.join(' ')
+end
+
+task :build => [:index, :files] do
+end
+
+task :index do |t, args|
+  opts = {
+    :python          => PYTHON,
+    :java            => JAVA,
+    :yuicompressor   => YUICOMPRESSOR,
+    :closurecompiler => CLOSURECOMPILER,
+    :closurelibrary  => CLOSURE_LIB_DIR,
+    :closurebuilder  => CLOSUREBUILDER,
+    :optimize        => args['optimize'] != 'no',
+    :closureopts     => {
+      '--define'            => 'goog.DEBUG=false',
+      '--output_wrapper'    => '(function(){%output%})();',
+      '--externs'           => EXTERNS,
+      '--compilation_level' => 'ADVANCED_OPTIMIZATIONS'
+    },
+    :css_url_map     => [[/^\.\.\/images\/tree\/(.+)/u, File.join(STATIC_DIR, 'images/\1')]]
+  }
+  conv = HtmlOptimizer.new(opts)
+  html = conv.render_file('index.html')
+  File.open(File.join(SERVER_DIR, 'index.html'), 'w') do |file|
+    file << html
+  end
+end
+
+task :files do
+  cp_r(STATIC_DIR, SERVER_DIR)
+end
