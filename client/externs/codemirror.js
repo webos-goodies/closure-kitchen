@@ -156,3 +156,47 @@ CodeMirror.prototype.setParser = function(name, parserConfig) {};
  * @param {*} start
  */
 CodeMirror.prototype.cursorCoords = function(start) {};
+
+/**
+ * Editor object
+ * @type {CodeMirror.Editor}
+ */
+CodeMirror.prototype.editor;
+
+/**
+ * Editor class.
+ * @constructor
+ */
+CodeMirror.Editor = function() {};
+
+/**
+ * Undo history.
+ * @type {CodeMirror.UndoHistory}
+ */
+CodeMirror.Editor.prototype.history;
+
+/**
+ * A history object needs to know about the DOM container holding the
+ * document, the maximum amount of undo levels it should store, the
+ * delay (of no input) after which it commits a set of changes, and,
+ * unfortunately, the 'parent' window -- a window that is not in
+ * designMode, and on which setTimeout works in every browser.
+ * @param {document} container The DOM container holding the document.
+ * @param {number} maxDeps The maximum amount of undo levels.
+ * @param {number} commitDelay The delay (of no input) after which it commits a set of changes.
+ * @param {CodeMirror.Editor} editor The editor object.
+ * @constructor
+ */
+CodeMirror.UndoHistory = function(container, maxDeps, commitDelay, editor) {};
+
+/**
+ * Callback function called at every change.
+ * @type {Function}
+ */
+CodeMirror.UndoHistory.prototype.onChange;
+
+/**
+ * Check whether the touched nodes hold any changes, if so, commit them.
+ * @param {boolean} doNotHighlight
+ */
+CodeMirror.UndoHistory.prototype.commit = function(doNotHighlight) {};
