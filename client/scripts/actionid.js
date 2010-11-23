@@ -9,7 +9,8 @@ goog.provide('closurekitchen.ActionMetaData');
 closurekitchen.ActionID = {
   NEW_PROJECT:             'NEW_PROJECT',
   OPEN_PROJECT:            'OPEN_PROJECT',
-  RENAME_PROJECT:          'RENAME_CURRENT_PROJECT',
+  RENAME_PROJECT:          'RENAME_PROJECT',
+  DELETE_PROJECT:          'DELETE_PROJECT',
   SAVE_CURRENT_PROJECT:    'SAVE_CURRENT_PROJECT',
   PUBLISH_CURRENT_PROJECT: 'PUBLISH_CURRENT_PROJECT',
   UNDO:                    'UNDO',
@@ -49,6 +50,11 @@ closurekitchen.ActionMetaData[closurekitchen.ActionID.RENAME_PROJECT] = {
   type:    closurekitchen.ActionType.ONE_SHOT,
   content: goog.getMsg('Rename'),
   tooltip: goog.getMsg('Rename this project.')
+};
+closurekitchen.ActionMetaData[closurekitchen.ActionID.DELETE_PROJECT] = {
+  type:    closurekitchen.ActionType.ONE_SHOT,
+  content: goog.getMsg('Delete'),
+  tooltip: goog.getMsg('Delete this project.')
 };
 closurekitchen.ActionMetaData[closurekitchen.ActionID.SAVE_CURRENT_PROJECT] = {
   type:    closurekitchen.ActionType.ONE_SHOT,

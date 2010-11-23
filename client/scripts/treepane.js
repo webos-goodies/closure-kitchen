@@ -5,6 +5,7 @@ goog.require('goog.events.KeyHandler');
 goog.require('goog.ui.tree.TreeControl');
 goog.require('goog.ui.tree.TreeNode');
 goog.require('goog.ui.PopupMenu');
+goog.require('goog.ui.MenuSeparator');
 goog.require('goog.debug.Logger');
 goog.require('closurekitchen.ActionID');
 goog.require('closurekitchen.ActionEvent');
@@ -50,6 +51,8 @@ closurekitchen.TreePane = function(opt_domHelper) {
   this.contextMenu_ = new goog.ui.PopupMenu(opt_domHelper);
   this.contextMenu_.addChild(builder.buildMenuItem(ActionID.OPEN_PROJECT),    true);
   this.contextMenu_.addChild(builder.buildMenuItem(ActionID.RENAME_PROJECT),  true);
+  this.contextMenu_.addChild(new goog.ui.MenuSeparator(opt_domHelper),        true);
+  this.contextMenu_.addChild(builder.buildMenuItem(ActionID.DELETE_PROJECT),  true);
 };
 goog.inherits(closurekitchen.TreePane, goog.ui.Component);
 
@@ -220,7 +223,7 @@ closurekitchen.TreePane.prototype.dispatchActionEvent_ = function(actionId) {
 
 /**
  * Applies the modifications of the project.
- * @param {closurekitchen.Project} project The project instance.
+ * @param {closurekitchen.Project} project The project to apply.
  */
 closurekitchen.TreePane.prototype.applyProject = function(project) {
   var node = this.findByProject_(project);
@@ -230,6 +233,20 @@ closurekitchen.TreePane.prototype.applyProject = function(project) {
 	this.addPrivateProject_(project);
   } else {
 	this.addPublicProject_(project);
+  }
+};
+
+/**
+ * Delete the project.
+ * @param {closurekitchen.Project} project The project to delete.
+ */
+closurekitchen.TreePane.prototype.deleteProject = function(project) {
+  var node = this.findByProject_(project), parent = null;
+  if(node) {
+	while(node.getChildCount() == 0 && (parent = node.getParent())) {
+	  parent.removeChild(node);
+	  node = parent;
+	}
   }
 };
 
@@ -250,6 +267,7 @@ closurekitchen.TreePane.prototype.createStatusBundle_ = function() {
   var projectId = this.getSelectedProjectId();
   var project   = projectId && Project.findById(projectId);
   this.appStatus_.isModified = false;
+  this.appStatus_.exist      = !!project;
   if(project) {
 	this.appStatus_.isPriv = project.isPrivate();
   }

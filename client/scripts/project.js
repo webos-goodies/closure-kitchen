@@ -182,6 +182,13 @@ closurekitchen.Project.findById = function(id) {
 closurekitchen.Project.prototype.type_;
 
 /**
+ * Whether the project is deleted or not.
+ * @type {boolean}
+ * @private
+ */
+closurekitchen.Project.prototype.isDeleted_ = false;
+
+/**
  * The id of the project.
  * @type {?string}
  * @private
@@ -420,6 +427,31 @@ closurekitchen.Project.prototype.put = function(format, opt_callback, opt_scope)
 	}
 	closurekitchen.Project.initiateCallback_(opt_callback, opt_scope, [this]);
   }
+};
+
+/**
+ * Deletes the project.
+ * @param {Function=} opt_callback This function is called when the request is complete.
+ * @param {Object=} opt_scope The scope of the callback.
+ */
+closurekitchen.Project.prototype.del = function(opt_callback, opt_scope) {
+  if(this.isDeleted_) {
+	return;
+  }
+  if(this.isNew() || closurekitchen.Project.LOCAL_MODE) {
+	closurekitchen.Project.initiateCallback_(opt_callback, opt_scope, [this]);
+	return;
+  }
+
+  var id = closurekitchen.Project.nextXhrId_++;
+  goog.asserts.assert(!closurekitchen.Project.requests_[id], 'Request id is recycled.');
+
+  var request = closurekitchen.Project.xhrManager_.send(
+    id, this.getRequestUrl(closurekitchen.Project.Format.ALL),
+	'DELETE', null, {}, 0, goog.bind(this.processResponse_, this, id));
+  closurekitchen.Project.requests_[id] = new closurekitchen.Project.Request(
+	request, closurekitchen.Project.Format.ALL, opt_callback, opt_scope);
+  this.isDeleted_ = true;
 };
 
 /**

@@ -229,7 +229,8 @@ closurekitchen.App.prototype.updateComponents_ = function() {
 		isUser:     this.user_.isUser(),
 		isAdmin:    this.user_.isAdmin(),
 		isPriv:     this.currentProject_.isPrivate(),
-		isModified: this.isModified_
+		isModified: this.isModified_,
+		exist:      true
 	  });
 	  this.rootComponent_.updateByStatusBundle(bundle);
 	} finally {
@@ -247,7 +248,7 @@ closurekitchen.App.prototype.updateComponents_ = function() {
  */
 closurekitchen.App.prototype.openProject_ = function(project) {
   if(this.currentProject_ && this.currentProject_.isNew()) {
-	this.currentProject_.dispose();
+	this.currentProject_.del();
 	this.currentProject_ = null;
   }
   this.currentProject_ = project;
@@ -337,6 +338,10 @@ closurekitchen.App.prototype.onAction_ = function(e) {
 	}
   } else if(actionId == ActionID.RENAME_PROJECT) {
 	this.actionRenameProject_(data);
+  } else if(actionId == ActionID.DELETE_PROJECT) {
+	if(this.confirmToClose_()) {
+	  this.actionDeleteProject_(data);
+	}
   } else if(actionId == ActionID.SAVE_CURRENT_PROJECT) {
 	this.actionSaveCurrentProject_();
   } else if(actionId == ActionID.PUBLISH_CURRENT_PROJECT) {
@@ -398,6 +403,29 @@ closurekitchen.App.prototype.actionRenameProject_ = function(projectId) {
 };
 
 /**
+ * Processes RENAME_PROJECT action.
+ * @private
+ */
+closurekitchen.App.prototype.actionRenameCurrentProject_ = function() {
+  if(!this.currentProject_.isFetched())
+	return;
+  if(this.user_.isUser()) {
+	if(!this.user_.isAdmin() && !project.isPrivate()) {
+	  this.openProject_(project.duplicateAsPrivate());
+	}
+	this.editorPane_.exportToProject(project);
+	this.saveProjectLocally_(project);
+	this.projNameDialog_.openDialog(
+	  project,
+	  this.editorPane_.getDisplayProjectName(),
+	  this.onProjNameEntered_, this);
+  } else {
+	closurekitchen.App.logger_.severe(
+	  'Initiated RENAME_PROJECT command by guest.');
+  }
+};
+
+/**
  * This function is called when the new project name is entered.
  * @param {closurekitchen.Project} project The project to be renamed.
  * @param {string} text The user entered text.
@@ -420,6 +448,21 @@ closurekitchen.App.prototype.onRenameProjectCompleted_ = function(project) {
 	// Saves the project id into cookie.
 	this.saveProjectLocally_(this.currentProject_);
   }
+};
+
+/**
+ * Processes DELETE_PROJECT action.
+ * @param {string} projectId Project ID to delete.
+ * @private
+ */
+closurekitchen.App.prototype.actionDeleteProject_ = function(projectId) {
+  if(this.currentProject_.getId() == projectId) {
+	this.openProject_(new Project(Project.Type.PRIVATE));
+  }
+  var project = projectId && Project.findById(projectId);
+  goog.asserts.assert(project, 'DELETE_PROJECT action invoked without a project id.');
+  project.del();
+  this.treePane_.deleteProject(project);
 };
 
 /**

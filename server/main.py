@@ -89,6 +89,14 @@ class Project(db.Model):
       prefix = Project.PREFIX_PRIVATE
     return '%s_%x' % (prefix, self.key().id())
 
+  def load_from_dict(self, data):
+    if 'n' in data:
+      self.name = data['n'] or ''
+    if 'j' in data:
+      self.jscode = data['j'] or ''
+    if 'h' in data:
+      self.htmlcode = data['h'] or ''
+
   @classmethod
   def get_by_project_id(cls, project_id, user_id):
     type, sep, project_id = project_id.partition('_')
@@ -116,6 +124,23 @@ class Project(db.Model):
   @classmethod
   def get_public_projects(cls):
     return cls.PUBLIC_PROJECT_Q.fetch(1000)
+
+  @classmethod
+  def delete_by_project_id(cls, project_id, user_id):
+    type, sep, project_id = project_id.partition('_')
+    if project_id:
+      if type == cls.PREFIX_PUBLIC:
+        key = db.Key.from_path(cls.kind(), int(project_id, 16))
+      elif type == cls.PREFIX_PRIVATE:
+        if not user_id:
+          return
+        key = db.Key.from_path('UserData', user_id, cls.kind(), int(project_id, 16))
+      else:
+        logging.error('Unknown project id prefix.')
+        return
+      db.delete(key)
+    else:
+      return
 
 Project.PUBLIC_PROJECT_Q = Project.gql('WHERE name != NULL')
 
@@ -294,15 +319,12 @@ class ProjectsHandler(BaseHandler):
       projects = user_data.get_projects()
       if key not in projects:
         raise HttpError(404)
-      projects[key]['n'] = req_body['n']
+      projects[key]['n'] = req_body['n'] or ''
       user_data.set_projects(projects)
       user_data.put()
     if ('j' in req_body) or ('h' in req_body):
       project = Project.get_by_project_id_safe(key, user_data.id_or_name())
-      if 'j' in req_body:
-        project.jscode = req_body['j'] or ''
-      if 'h' in req_body:
-        project.htmlcode = req_body['h'] or ''
+      project.load_from_dict(req_body)
       project.put()
 
   def put_public(self, key, req_body):
@@ -311,13 +333,34 @@ class ProjectsHandler(BaseHandler):
       raise HttpError(403)
     user_id = user.user_id()
     project = Project.get_by_project_id_safe(key, user_id)
-    if 'n' in req_body:
-      project.name = req_body['n']
-    if 'j' in req_body:
-      project.jscode = req_body['j'] or ''
-    if 'h' in req_body:
-      project.htmlcode = req_body['h'] or ''
+    project.load_from_dict(req_body)
     project.put()
+
+  def delete(self):
+    key = self.get_project_id()
+    if key[0] == Project.PREFIX_PRIVATE:
+      db.run_in_transaction(self.delete_private, key)
+    elif users.is_current_user_admin():
+      db.run_in_transaction(self.delete_public, key)
+    else:
+      raise HttpError(403)
+    self.output_json({})
+
+  def delete_private(self, key):
+    user_data = self.get_user_data()
+    projects  = user_data.get_projects()
+    if key not in projects:
+      raise HttpError(404)
+    del projects[key]
+    user_data.set_projects(projects)
+    user_data.put()
+    Project.delete_by_project_id(key, user_data.id_or_name())
+
+  def delete_public(self, key):
+    user = users.get_current_user()
+    if not user:
+      raise HttpError(403)
+    Project.delete_by_project_id(key, user.user_id())
 
   def output_json(self, data):
     self.response.headers['Content-Type'] = 'application/json'

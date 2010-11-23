@@ -16,5 +16,5 @@ goog.addDependency('../../../scripts/project.js', ['closurekitchen.Project', 'cl
 goog.addDependency('../../../scripts/renamedialog.js', ['closurekitchen.RenameDialog'], ['closurekitchen.Project', 'goog.debug.Logger', 'goog.dom.DomHelper', 'goog.ui.Prompt']);
 goog.addDependency('../../../scripts/statusbundle.js', ['closurekitchen.StatusBundle'], ['closurekitchen.ActionID', 'goog.object', 'goog.ui.Component', 'goog.ui.Control']);
 goog.addDependency('../../../scripts/threepane.js', ['closurekitchen.ThreePane'], ['goog.dom.DomHelper', 'goog.ui.SplitPane']);
-goog.addDependency('../../../scripts/treepane.js', ['closurekitchen.TreePane'], ['closurekitchen.ActionEvent', 'closurekitchen.ActionID', 'closurekitchen.ComponentBuilder', 'closurekitchen.Project', 'goog.array', 'goog.debug.Logger', 'goog.events.KeyHandler', 'goog.string', 'goog.ui.PopupMenu', 'goog.ui.tree.TreeControl', 'goog.ui.tree.TreeNode']);
+goog.addDependency('../../../scripts/treepane.js', ['closurekitchen.TreePane'], ['closurekitchen.ActionEvent', 'closurekitchen.ActionID', 'closurekitchen.ComponentBuilder', 'closurekitchen.Project', 'goog.array', 'goog.debug.Logger', 'goog.events.KeyHandler', 'goog.string', 'goog.ui.MenuSeparator', 'goog.ui.PopupMenu', 'goog.ui.tree.TreeControl', 'goog.ui.tree.TreeNode']);
 goog.addDependency('../../../scripts/user.js', ['closurekitchen.User'], []);
