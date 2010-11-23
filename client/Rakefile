@@ -212,5 +212,16 @@ task :index do |t, args|
 end
 
 task :files do
-  cp_r(STATIC_DIR, SERVER_DIR)
+  mkdir_p(File.join(SERVER_DIR, STATIC_DIR), :verbose => false)
+  files = []
+  Dir.glob(File.join(STATIC_DIR, '**', '*')) do |fname|
+    if File.directory?(fname)
+      mkdir_p(File.join(SERVER_DIR, fname), :verbose => false)
+    else
+      files << fname
+    end
+  end
+  files.each do |fname|
+    cp(fname, File.join(SERVER_DIR, fname), :verbose => false)
+  end
 end
