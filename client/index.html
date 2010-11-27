@@ -22,7 +22,6 @@
   <!--[/del]-->
   <!--[uncomment]
   <script type="text/javascript">
-	<%= include_js('files/codemirror/codemirror.js') %>
 	var startupInfo = {
 	  userType:  '{{user_type}}',
 	  projectId: {{project_id}},
@@ -61,9 +60,7 @@
   </script>
   <!--[/del]-->
   <!--[uncomment]
-  <script type="text/javascript">
-	<%= compile_closure_app('closurekitchen.App', nil, 'scripts') %>
-  </script>
+  <script type="text/javascript" src="files/script.js"></script>
   -->
 </body>
 </html>

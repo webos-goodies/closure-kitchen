@@ -112,6 +112,13 @@ closurekitchen.TreePane.prototype.treeEl_;
 closurekitchen.TreePane.prototype.bookEl_;
 
 /**
+ * Context menu.
+ * @type {goog.ui.PopupMenu}
+ * @private
+ */
+closurekitchen.TreePane.prototype.contextMenu_;
+
+/**
  * A folder node contains private projects.
  * @type {goog.ui.tree.TreeNode}
  * @private

@@ -17,7 +17,8 @@ closurekitchen.ActionID = {
   UNDO:                    'UNDO',
   REDO:                    'REDO',
   UPDATE_PREVIEW:          'UPDATE_PREVIEW',
-  CURRENT_PROJECT_CHANGED: 'CURRENT_PROJECT_CHANGED'
+  CURRENT_PROJECT_CHANGED: 'CURRENT_PROJECT_CHANGED',
+  CLEAR_CONSOLE:           'CLEAR_CONSOLE'
 };
 
 /**
@@ -94,4 +95,9 @@ closurekitchen.ActionMetaData[closurekitchen.ActionID.UPDATE_PREVIEW] = {
   cls:     'toolbar-icon toolbar-icon-reload',
   content: goog.getMsg('Reload'),
   tooltip: goog.getMsg('Reload and update preview.')
+};
+closurekitchen.ActionMetaData[closurekitchen.ActionID.CLEAR_CONSOLE] = {
+  type:    closurekitchen.ActionType.ONE_SHOT,
+  content: goog.getMsg('Clear'),
+  tooltip: goog.getMsg('Clear debug console.')
 };

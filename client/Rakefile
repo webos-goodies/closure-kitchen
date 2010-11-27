@@ -17,6 +17,83 @@ EXTERNS         = ['externs/codemirror.js']
 
 SERVER_DIR      = File.expand_path('../server');
 
+OPTIMIZE_OPTIONS = {
+  :python          => PYTHON,
+  :java            => JAVA,
+  :yuicompressor   => YUICOMPRESSOR,
+  :closurecompiler => CLOSURECOMPILER,
+  :closurelibrary  => CLOSURE_LIB_DIR,
+  :closurebuilder  => CLOSUREBUILDER,
+  :closureopts     => {
+    '--define'            => 'goog.DEBUG=false',
+    '--output_wrapper'    => '(function(){%output%})();',
+    '--externs'           => EXTERNS,
+    '--compilation_level' => 'ADVANCED_OPTIMIZATIONS'
+  },
+  :css_url_map     => [[/^\.\.\/images\/tree\/(.+)/u, File.join(STATIC_DIR, 'images/\1')]]
+}
+
+class JavaScriptOptimizer
+  def initialize(config = {})
+    @java            = config[:java]            || 'java'
+    @python          = config[:python]          || 'python'
+    @yuicompressor   = config[:yuicompressor]   || 'yuicompressor.jar'
+    @closurecompiler = config[:closurecompiler] || 'compiler.jar'
+    @closurelibrary  = config[:closurelibrary]  || 'closure-library'
+    @closurebuilder  = (config[:closurebuilder] ||
+                        File.join(@closurelibrary, 'closure/bin/build/closurebuilder.py'))
+    @closureopts     = config[:closureopts]     || ''
+    @optimize        = config[:optimize]
+  end
+
+  def compress_js(*paths)
+    code = paths.map{|path| IO.read(path) }.join("\n")
+    exec([@java, '-jar', @yuicompressor, '--type', 'js'], code) if @optimize
+  end
+
+  def build_closure_opts(opts)
+    opts.map do |key, values|
+      [*values].map{|v| "#{key}=#{v}" }
+    end
+  end
+
+  def compile_js(compiler_opts={}, *paths)
+    if @optimize
+      opts = build_closure_opts(@closureopts.merge(compiler_opts))
+      code = exec([@java, '-jar', @closurecompiler, opts,
+                   paths.map{|path| ['--js', path] }])
+    else
+      code = paths.map{|path| IO.read(path) }.join("\n")
+    end
+    code
+  end
+
+  def compile_closure_app(namespace, compiler_opts=nil, *paths)
+    cmd  = [@python, @closurebuilder, '-n', namespace, "--root=#{@closurelibrary}",
+            paths.map{|path| "--root=#{path}" }]
+    code = ''
+    if @optimize
+      opts = build_closure_opts(@closureopts.merge(compiler_opts || {}))
+      code = exec([cmd, '-o', 'compiled', '-c', @closurecompiler,
+                   opts.map{|s| ['-f', s] }])
+    else
+      opts = build_closure_opts(@closureopts.merge(compiler_opts || {}))
+      code = exec([cmd, '-o', 'script'])
+    end
+    code
+  end
+
+  def exec(cmd, stdin = '')
+    stdout = ''
+    IO.popen([*cmd].flatten.map{|s| '"'+s+'"'}.join(' '), 'r+') do |pipe|
+      pipe.write(stdin)
+      pipe.close_write
+      stdout = pipe.read
+    end
+    stdout
+  end
+end
+
 class HtmlOptimizer
 
   def initialize(config = {})
@@ -37,6 +114,8 @@ class HtmlOptimizer
       pre_tag = pre_tag.map{|s| Regexp.quote(s) }.join('|')
       @pre_tag_regex = /<(#{pre_tag})[\s>].*?<\/\1\s*>/mui
     end
+
+    @jsoptimizer = JavaScriptOptimizer.new(config)
   end
 
   def render_str(str)
@@ -100,41 +179,15 @@ class HtmlOptimizer
   end
 
   def compress_js(*paths)
-    code = paths.map{|path| IO.read(path) }.join("\n")
-    code = exec([@java, '-jar', @yuicompressor, '--type', 'js'], code) if @optimize
-    escape_js(code)
-  end
-
-  def build_closure_opts(opts)
-    opts.map do |key, values|
-      [*values].map{|v| "#{key}=#{v}" }
-    end
+    escape_js(@jsoptimizer.compress_js(*paths))
   end
 
   def compile_js(compiler_opts={}, *paths)
-    if @optimize
-      opts = build_closure_opts(@closureopts.merge(compiler_opts))
-      code = exec([@java, '-jar', @closurecompiler, opts,
-                   paths.map{|path| ['--js', path] }])
-    else
-      code = paths.map{|path| IO.read(path) }.join("\n")
-    end
-    escape_js(code)
+    escape_js(@jsoptimizer.compile_js(compiler_opts, *paths))
   end
 
   def compile_closure_app(namespace, compiler_opts=nil, *paths)
-    cmd  = [@python, @closurebuilder, '-n', namespace, "--root=#{@closurelibrary}",
-            paths.map{|path| "--root=#{path}" }]
-    code = ''
-    if @optimize
-      opts = build_closure_opts(@closureopts.merge(compiler_opts || {}))
-      code = exec([cmd, '-o', 'compiled', '-c', @closurecompiler,
-                   opts.map{|s| ['-f', s] }])
-    else
-      opts = build_closure_opts(@closureopts.merge(compiler_opts || {}))
-      code = exec([cmd, '-o', 'script'])
-    end
-    escape_js(code)
+    escape_js(@jsoptimizer.compile_closure_app(namespace, compiler_opts, *paths))
   end
 
   def optimize_html(html)
@@ -184,28 +237,14 @@ task :deps do
       "--output_file=#{DEPS_FILE}"].flatten.join(' ')
 end
 
-task :build => [:index, :files] do
+task :build => [:index, :files, :script] do
 end
 
 task :index do |t, args|
-  opts = {
-    :python          => PYTHON,
-    :java            => JAVA,
-    :yuicompressor   => YUICOMPRESSOR,
-    :closurecompiler => CLOSURECOMPILER,
-    :closurelibrary  => CLOSURE_LIB_DIR,
-    :closurebuilder  => CLOSUREBUILDER,
-    :optimize        => args['optimize'] != 'no',
-    :closureopts     => {
-      '--define'            => 'goog.DEBUG=false',
-      '--output_wrapper'    => '(function(){%output%})();',
-      '--externs'           => EXTERNS,
-      '--compilation_level' => 'ADVANCED_OPTIMIZATIONS'
-    },
-    :css_url_map     => [[/^\.\.\/images\/tree\/(.+)/u, File.join(STATIC_DIR, 'images/\1')]]
-  }
-  conv = HtmlOptimizer.new(opts)
-  html = conv.render_file('index.html')
+  opts            = OPTIMIZE_OPTIONS.dup
+  opts[:optimize] = args['optimize'] != 'no'
+  conv            = HtmlOptimizer.new(opts)
+  html            = conv.render_file('index.html')
   File.open(File.join(SERVER_DIR, 'index.html'), 'w') do |file|
     file << html
   end
@@ -223,5 +262,16 @@ task :files do
   end
   files.each do |fname|
     cp(fname, File.join(SERVER_DIR, fname), :verbose => false)
+  end
+end
+
+task :script do |t, args|
+  jscode          = IO.read('files/codemirror/codemirror.js') + "\n";
+  opts            = OPTIMIZE_OPTIONS.dup
+  opts[:optimize] = args['optimize'] != 'no'
+  conv            = JavaScriptOptimizer.new(opts)
+  jscode         += conv.compile_closure_app('closurekitchen.App', nil, SCRIPT_DIR)
+  File.open(File.join(SERVER_DIR, STATIC_DIR, 'script.js'), 'w') do |file|
+    file << jscode
   end
 end

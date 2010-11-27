@@ -105,6 +105,8 @@ closurekitchen.App = function() {
 	this.viewportSize_, goog.events.EventType.RESIZE, this.onResizeViewport_);
   this.onResizeViewport_();
   this.rootComponent_.finishInitialization();
+
+  window.onbeforeunload = goog.bind(this.onUnload_, this);
 };
 goog.addSingletonGetter(closurekitchen.App);
 
@@ -348,6 +350,19 @@ closurekitchen.App.prototype.onSplitDelayFired_ = function() {
 };
 
 /**
+ * Event handler for unload event.
+ * @private
+ */
+closurekitchen.App.prototype.onUnload_ = function(e) {
+  e = e || window.event;
+  if(this.isModified_) {
+	var msg       = goog.getMsg('The curent project is modified.\nDiscard anyway?');
+	e.returnValue = msg;
+	return msg
+  }
+};
+
+/**
  * The event handler for all control actions.
  * @param {goog.events.Event} e The event object.
  * @private
@@ -401,6 +416,8 @@ closurekitchen.App.prototype.onAction_ = function(e) {
 	this.actionPublishCurrentProject();
   } else if(actionId == ActionID.UPDATE_PREVIEW) {
 	this.actionUpdatePreview_();
+  } else if(actionId == ActionID.CLEAR_CONSOLE) {
+	this.consolePane_.clear();
   } else {
 	this.editorPane_.doAction(actionId, data);
   }
@@ -593,7 +610,7 @@ closurekitchen.App.prototype.onUpdatePreviewCompleted_ = function(jsSrc, project
  * @private
  */
 closurekitchen.App.prototype.getCompiledCode_ = function(jsSrc) {
-  jsSrc = goog.string.trim(jsSrc);
+  jsSrc = goog.string.canonicalizeNewlines(goog.string.trim(jsSrc));
   var record = goog.array.find(this.jsCache_, function(cache) {
 	return cache.src == jsSrc;
   }, this);
@@ -608,7 +625,7 @@ closurekitchen.App.prototype.getCompiledCode_ = function(jsSrc) {
  * @private
  */
 closurekitchen.App.prototype.updatePreview_ = function(jsCode, jsSrc, htmlCode) {
-  jsSrc = goog.string.trim(jsSrc);
+  jsSrc = goog.string.canonicalizeNewlines(goog.string.trim(jsSrc));
   var index = goog.array.findIndex(this.jsCache_, function(cache) {
 	return cache.src == jsSrc;
   }, this);

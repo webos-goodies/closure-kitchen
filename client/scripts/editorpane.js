@@ -211,6 +211,7 @@ closurekitchen.EditorPane.prototype.importFromProject = function(project) {
  */
 closurekitchen.EditorPane.prototype.updatePreview = function(html) {
   this.tabContents_[2].setContent(html);
+  this.tabBar_.setSelectedTabIndex(2);
 };
 
 /**

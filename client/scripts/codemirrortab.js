@@ -153,7 +153,7 @@ closurekitchen.CodeMirrorTab.prototype.updateStatusBundle = function(bundle) {
 };
 
 /** @inheritDoc */
-closurekitchen.AbstractEditorTab.prototype.doAction = function(actionId, opt_data) {
+closurekitchen.CodeMirrorTab.prototype.doAction = function(actionId, opt_data) {
   if(actionId == ActionID.UNDO) {
 	this.editor_.editor && this.editor_.undo();
   } else if(actionId == ActionID.REDO) {
