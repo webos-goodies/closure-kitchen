@@ -1,6 +1,8 @@
 goog.provide('closurekitchen.App');
+goog.require('goog.string');
 goog.require('goog.Uri');
 goog.require('goog.array');
+goog.require('goog.async.Delay');
 goog.require('goog.dom');
 goog.require('goog.dom.forms');
 goog.require('goog.dom.ViewportSizeMonitor');
@@ -36,9 +38,11 @@ closurekitchen.App = function() {
 
   this.isModified_   = false;
   this.updating_     = false;
+  this.jsCache_      = [];
   this.eventHandler_ = new goog.events.EventHandler(this);
   this.user_         = new User(pageUri.getParameterValue('user') || startupInfo['userType']);
   this.viewportSize_ = new goog.dom.ViewportSizeMonitor();
+  this.splitDelay_   = new goog.async.Delay(this.onSplitDelayFired_, 1000, this);
 
   Project.initialize(startupInfo['projects'], startupInfo['samples']);
 
@@ -62,8 +66,19 @@ closurekitchen.App = function() {
   this.editorPane_  = new closurekitchen.EditorPane(this.currentProject_);
   this.consolePane_ = new closurekitchen.ConsolePane(pageUri);
 
+  var splitPos = { hpos: 0, vpos: 0 };
+  try{
+	if(window.localStorage) {
+	  splitPos.hpos =
+		goog.string.toNumber(localStorage.getItem(closurekitchen.App.StorageKey.HPOS) || '');
+	  splitPos.vpos =
+		goog.string.toNumber(localStorage.getItem(closurekitchen.App.StorageKey.VPOS) || '');
+	}
+  } catch(e) {
+	closurekitchen.App.logger_.severe('Failed to fetch the locally saved settings.', e);
+  }
   this.rootComponent_ = new closurekitchen.ThreePane(
-	this.treePane_, this.editorPane_, this.consolePane_, this.computeRootSize_());
+	this.treePane_, this.editorPane_, this.consolePane_, this.computeRootSize_(), splitPos);
   this.rootComponent_.render(goog.dom.getElement('main'));
 
   this.projNameDialog_ = new closurekitchen.RenameDialog();
@@ -72,7 +87,8 @@ closurekitchen.App = function() {
 
   goog.array.forEach(
 	[[closurekitchen.ActionEvent.EVENT_TYPE, this.onAction_],
-	 [goog.ui.Component.EventType.ACTION,    this.onAction_]],
+	 [goog.ui.Component.EventType.ACTION,    this.onAction_],
+	 [goog.ui.Component.EventType.CHANGE,    this.onChangeSplit_]],
 	function(item) {
 	  this.eventHandler_.listen(this.rootComponent_, item[0], item[1]);
 	}, this);
@@ -88,6 +104,7 @@ closurekitchen.App = function() {
   this.eventHandler_.listen(
 	this.viewportSize_, goog.events.EventType.RESIZE, this.onResizeViewport_);
   this.onResizeViewport_();
+  this.rootComponent_.finishInitialization();
 };
 goog.addSingletonGetter(closurekitchen.App);
 
@@ -112,7 +129,9 @@ closurekitchen.App.COOKIE_PROJECT_ID = 'ck_pid';
  */
 closurekitchen.App.StorageKey = {
   JS:   'closure_kitchen_js',
-  HTML: 'closure_kitchen_html'
+  HTML: 'closure_kitchen_html',
+  HPOS: 'closure_kitchen_hpos',
+  VPOS: 'closure_kitchen_vpos'
 };
 
 /**
@@ -142,6 +161,13 @@ closurekitchen.App.prototype.eventHandler_;
  * @private
  */
 closurekitchen.App.prototype.currentProject_;
+
+/**
+ * Cache for compiled javascript code.
+ * @type {Array.<{src:string, compiled:string}>}
+ * @private
+ */
+closurekitchen.App.prototype.jsCache_;
 
 /**
  * The root component of the UI component tree.
@@ -297,6 +323,31 @@ closurekitchen.App.prototype.onResizeViewport_ = function() {
 };
 
 /**
+ * Event handler for CHANGE event from SplitPane.
+ * @return {goog.events.Event} e Event object.
+ * @private
+ */
+closurekitchen.App.prototype.onChangeSplit_ = function(e) {
+  if(e.target instanceof goog.ui.SplitPane) {
+	this.splitDelay_.start();
+  }
+};
+
+/**
+ * Saves the split positions to the local storage.
+ * @private
+ */
+closurekitchen.App.prototype.onSplitDelayFired_ = function() {
+  if(window.localStorage) {
+	var pos = this.rootComponent_.exportSettings();
+	localStorage.setItem(closurekitchen.App.StorageKey.HPOS, pos.hpos);
+	localStorage.setItem(closurekitchen.App.StorageKey.VPOS, pos.vpos);
+	closurekitchen.App.logger_.info(
+	  goog.string.subs('Save the split positions : hpos=%s, vpos=%s', pos.hpos, pos.vpos));
+  }
+};
+
+/**
  * The event handler for all control actions.
  * @param {goog.events.Event} e The event object.
  * @private
@@ -319,11 +370,11 @@ closurekitchen.App.prototype.onAction_ = function(e) {
 	return;
 
   if(this.updating_) {
-	closurekitchen.App.logger_.warning(goog.string.stubs(
-	  'Initiated %s action with %s in updating.', actionId, data));
+	closurekitchen.App.logger_.warning(
+	  goog.string.stubs('%s action is invoked with %s in updating.', actionId, data));
   } else {
-	closurekitchen.App.logger_.info(goog.string.subs(
-	  'Initiated %s action with %s', actionId, data));
+	closurekitchen.App.logger_.info(
+	  goog.string.subs('%s action is invoked with %s', actionId, data));
   }
 
   if(actionId == ActionID.CURRENT_PROJECT_CHANGED) {
@@ -344,8 +395,10 @@ closurekitchen.App.prototype.onAction_ = function(e) {
 	}
   } else if(actionId == ActionID.SAVE_CURRENT_PROJECT) {
 	this.actionSaveCurrentProject_();
+  } else if(actionId == ActionID.RENAME_CURRENT_PROJECT) {
+	this.actionRenameCurrentProject_();
   } else if(actionId == ActionID.PUBLISH_CURRENT_PROJECT) {
-	this.actionPublishCurrentProject(data);
+	this.actionPublishCurrentProject();
   } else if(actionId == ActionID.UPDATE_PREVIEW) {
 	this.actionUpdatePreview_();
   } else {
@@ -362,66 +415,28 @@ closurekitchen.App.prototype.onAction_ = function(e) {
  * @private
  */
 closurekitchen.App.prototype.actionOpenProject = function(projectId) {
-  goog.asserts.assert(projectId, 'Initiated OPEN_PROJECT action with null.');
+  goog.asserts.assert(projectId, 'Invoked OPEN_PROJECT action without project id.');
   var project = Project.findById(projectId);
-  goog.asserts.assert(
-	project, 'Initiated OPEN_PROJECT action with an invalid project id(%s).', projectId);
+  goog.asserts.assert(project, 'Invoked OPEN_PROJECT action with an invalid id(%s).', projectId);
   this.openProject_(project);
   this.isModified_ = false;
 };
 
 /**
  * Processes RENAME_PROJECT action.
- * @param {string} projectId Project ID to rename. null means the current project.
+ * @param {string} projectId Project ID to rename.
  * @private
  */
 closurekitchen.App.prototype.actionRenameProject_ = function(projectId) {
-  var project = projectId ? Project.findById(projectId) : this.currentProject_;
-  goog.asserts.assert(
-	project, 'Initiated PUBLISH_CURRENT_PROJECT action with an invalid project id(%s).', projectId);
-  if(!projectId && !project.isFetched())
-	return;
+  var project = projectId && Project.findById(projectId);
+  goog.asserts.assert(project, 'Invoked RENAME_PROJECT action with an invalid id(%s).', projectId);
   if(this.user_.isUser()) {
 	if(!this.user_.isAdmin() && !project.isPrivate()) {
-	  if(projectId)
 		return;
-	  project = project.duplicateAsPrivate();
-	  this.openProject_(project);
 	}
-	if(!projectId) {
-	  this.editorPane_.exportToProject(project);
-	  this.saveProjectLocally_(project);
-	}
-	this.projNameDialog_.openDialog(
-	  project,
-	  project.getName() || this.editorPane_.getDisplayProjectName(),
-	  this.onProjNameEntered_, this);
+	this.projNameDialog_.openDialog(project, project.getName(), this.onProjNameEntered_, this);
   } else {
-	closurekitchen.App.logger_.severe(
-	  'Initiated RENAME_PROJECT command by guest.');
-  }
-};
-
-/**
- * Processes RENAME_PROJECT action.
- * @private
- */
-closurekitchen.App.prototype.actionRenameCurrentProject_ = function() {
-  if(!this.currentProject_.isFetched())
-	return;
-  if(this.user_.isUser()) {
-	if(!this.user_.isAdmin() && !project.isPrivate()) {
-	  this.openProject_(project.duplicateAsPrivate());
-	}
-	this.editorPane_.exportToProject(project);
-	this.saveProjectLocally_(project);
-	this.projNameDialog_.openDialog(
-	  project,
-	  this.editorPane_.getDisplayProjectName(),
-	  this.onProjNameEntered_, this);
-  } else {
-	closurekitchen.App.logger_.severe(
-	  'Initiated RENAME_PROJECT command by guest.');
+	closurekitchen.App.logger_.severe('Invoked RENAME_PROJECT command by guest.');
   }
 };
 
@@ -486,8 +501,29 @@ closurekitchen.App.prototype.actionSaveCurrentProject_ = function() {
 	  this.isModified_ = false;
 	}
   } else {
-	closurekitchen.App.logger_.severe(
-	  'Initiated SAVE_CURRENT_PROJECT command by guest.');
+	closurekitchen.App.logger_.severe('Invoked SAVE_CURRENT_PROJECT command by guest.');
+  }
+};
+
+/**
+ * Processes RENAME_CURRENT_PROJECT action.
+ * @private
+ */
+closurekitchen.App.prototype.actionRenameCurrentProject_ = function() {
+  if(!this.currentProject_.isFetched())
+	return;
+  if(this.user_.isUser()) {
+	if(!this.user_.isAdmin() && !this.currentProject_.isPrivate()) {
+	  this.openProject_(this.currentProject_.duplicateAsPrivate());
+	}
+	this.editorPane_.exportToProject(this.currentProject_);
+	this.saveProjectLocally_(this.currentProject_);
+	this.projNameDialog_.openDialog(
+	  this.currentProject_,
+	  this.editorPane_.getDisplayProjectName(),
+	  this.onProjNameEntered_, this);
+  } else {
+	closurekitchen.App.logger_.severe('Invoked RENAME_CURRENT_PROJECT command by guest.');
   }
 };
 
@@ -502,7 +538,7 @@ closurekitchen.App.prototype.actionPublishCurrentProject = function() {
 	this.currentProject_.put(Project.Format.PUBLISH);
   } else {
 	closurekitchen.App.logger_.severe(
-	  'Initiated PUBLISH_CURRENT_PROJECT command without admin privilege.');
+	  'Invoked PUBLISH_CURRENT_PROJECT command without admin privilege.');
   }
 };
 
@@ -513,21 +549,80 @@ closurekitchen.App.prototype.actionPublishCurrentProject = function() {
 closurekitchen.App.prototype.actionUpdatePreview_ = function() {
   this.editorPane_.exportToProject(this.currentProject_);
   this.saveProjectLocally_(this.currentProject_);
-  this.currentProject_.put(Project.Format.COMPILE, this.onUpdatePreviewCompleted_, this);
+  var jsSrc  = this.currentProject_.getJsCode();
+  var jsCode = this.getCompiledCode_(jsSrc);
+  if(jsCode) {
+	closurekitchen.App.logger_.info('Skip the compile request since the js code is cached.');
+	this.updatePreview_(jsCode, jsSrc, this.currentProject_.getHtmlCode());
+  } else {
+	this.currentProject_.put(
+	  Project.Format.COMPILE, goog.partial(this.onUpdatePreviewCompleted_, jsSrc), this);
+  }
 };
 
 /**
  * This function is called when the project name has changed.
+ * @param {string} jsSrc The source javascript code.
  * @param {closurekitchen.Project} project The project.
  * @param {closurekitchen.Project.Request} request The request information.
  * @param {goog.net.XhrIo} xhr A XhrIo instance.
  * @private
  */
-closurekitchen.App.prototype.onUpdatePreviewCompleted_ = function(project, request, xhr) {
+closurekitchen.App.prototype.onUpdatePreviewCompleted_ = function(jsSrc, project, request, xhr) {
   var body = xhr.getResponseJson();
-  var js   = body['compiledCode'].replace(/<\/(script)/i, '<\\\\/\1');
-  var html = project.getHtmlCode().replace(/\{\{\s*script\s*\}\}/i, function() { return js; });
-  this.editorPane_.updatePreview(html);
+  if(goog.isArray(body['warnings'])) {
+	goog.array.forEach(body['warnings'], function(record) {
+	  var msg = goog.string.subs('line %s : %s', record['lineno']||0, record['warning']||'');
+	  this.consolePane_.addLog(goog.debug.Logger.Level.WARNING, msg, 'warning');
+	}, this);
+  }
+  if(goog.isArray(body['errors'])) {
+	goog.array.forEach(body['errors'], function(record) {
+	  var msg = goog.string.subs('line %s : %s', record['lineno']||0, record['error']||'');
+	  this.consolePane_.addLog(goog.debug.Logger.Level.SEVERE, msg, 'error');
+	}, this);
+  }
+  this.updatePreview_(goog.isString(body['compiledCode']) ? body['compiledCode'] : '',
+					  jsSrc, project.getHtmlCode());
+};
+
+/**
+ * Returns the compiled javascript code from cache.
+ * @param {string} jsSrc The javascript code to be compiled.
+ * @return {string|null} The compiled javascript code. If jsSrc is not cached then null.
+ * @private
+ */
+closurekitchen.App.prototype.getCompiledCode_ = function(jsSrc) {
+  jsSrc = goog.string.trim(jsSrc);
+  var record = goog.array.find(this.jsCache_, function(cache) {
+	return cache.src == jsSrc;
+  }, this);
+  return record && record.compiled;
+};
+
+/**
+ * Update preview.
+ * @param {string} jsCode Compiled javascript code.
+ * @param {string} jsSrc The source of the javascript code.
+ * @param {string} htmlCode HTML code.
+ * @private
+ */
+closurekitchen.App.prototype.updatePreview_ = function(jsCode, jsSrc, htmlCode) {
+  jsSrc = goog.string.trim(jsSrc);
+  var index = goog.array.findIndex(this.jsCache_, function(cache) {
+	return cache.src == jsSrc;
+  }, this);
+  if(index >= 0) {
+	closurekitchen.App.logger_.info('Update the existing compile cache.');
+	goog.array.removeAt(this.jsCache_, index);
+  } else if(this.jsCache_.length >= 10) {
+	closurekitchen.App.logger_.info('Remove the expired compile cache.');
+	this.jsCache_.shift();
+  }
+  this.jsCache_.push({ src: jsSrc, compiled: jsCode});
+  jsCode   = jsCode.replace(/<\/(script)/i, '<\\\\/\1');
+  htmlCode = htmlCode.replace(/\{\{\s*script\s*\}\}/i, function() { return jsCode; });
+  this.editorPane_.updatePreview(htmlCode);
 };
 
 goog.debug.Console.autoInstall();

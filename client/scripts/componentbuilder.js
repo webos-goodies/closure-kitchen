@@ -33,13 +33,18 @@ closurekitchen.ComponentBuilder.prototype.domHelper_;
 closurekitchen.ComponentBuilder.prototype.buildToolbarButton =
   function(id, opt_data, opt_domHelper)
 {
+  var dom  = opt_domHelper || this.domHelper_;
   var meta = closurekitchen.ActionMetaData[id];
   goog.asserts.assert(meta, 'Unknown action id.');
 
-  var rv    = null;
-  var type  = meta.type;
+  var rv      = null;
+  var type    = meta.type;
+  var content = meta.content;
+  if(meta.cls) {
+	content = dom.createDom('div', meta.cls);
+  }
   if(type == closurekitchen.ActionType.ONE_SHOT) {
-	rv = new goog.ui.ToolbarButton(meta.content, null, opt_domHelper || this.domHelper_);
+	rv = new goog.ui.ToolbarButton(content, null, dom);
   }
   rv.setModel({ actionId: id, actionData: goog.isDef(opt_data) ? opt_data : null });
   rv.setTooltip(meta.tooltip);

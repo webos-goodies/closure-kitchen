@@ -24,29 +24,32 @@ body { overflow: hidden; margin: 4px; }
 }
 
 /* SplitPane */
-.goog-splitpane-first-container, .goog-splitpane-second-container {
-  overflow: hide;
-}
-.goog-splitpane-first-container .goog-splitpane-first-container {
-  border: 1px solid #6b90da;
-}
-.goog-splitpane-first-container .goog-splitpane-second-container {
-  border: none;
-}
-.goog-splitpane-handle {
-  background: #ccc; border: solid 1px white;
-}
-.goog-splitpane-handle-horizontal {
-  cursor: col-resize; border-style: none solid;
-}
-.goog-splitpane-handle-vertical {
-  cursor: row-resize; border-style: solid none;
-}
+.goog-splitpane-first-container, .goog-splitpane-second-container { overflow: hidden;   }
+.goog-splitpane-second-container, .goog-splitpane-first-container {  overflow: visible; }
+.goog-splitpane-second-container .goog-splitpane-first-container,
+.goog-splitpane-second-container .goog-splitpane-second-container { border: none; }
+.goog-splitpane-first-container { border: 1px solid #6b90da; }
+
+.goog-splitpane-handle            { background: #ccc; border: solid 1px white; }
+.goog-splitpane-handle-horizontal { cursor: col-resize; border-style: none solid; }
+.goog-splitpane-handle-vertical   { cursor: row-resize; border-style: solid none; }
 
 /* ツリーコントロール */
-.leftpane-tree  { overflow: auto; }
+.treepane-tree  { overflow: auto; }
 .goog-tree-root { margin: 4px; }
 .selected .goog-tree-item-label { background-color: rgb(192,192,192); }
+
+/* Closure Library 本の宣伝 */
+.treepane-book {
+  height: 210px; border-top: solid 1px #6b90da;
+  background: white url(files/images/book.png) center center;
+  background-repeat: no-repeat;
+}
+.treepane-book a {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
 
 /* タブバー */
 .editorpane-tabbar     { padding-left: 4px; font-size: 12px; }
@@ -100,3 +103,19 @@ body { overflow: hidden; margin: 4px; }
 	width: 2em;
 	border-right: solid 1px black;
 }
+
+/* ツールバーアイコン */
+.toolbar-icon {
+	background-image: url(files/images/icons.png);
+	display: block;
+	width: 16px;
+	height: 16px;
+}
+.toolbar-icon-new    { background-position: 0px; }
+.toolbar-icon-save   { background-position: -16px; }
+.toolbar-icon-delete { background-position: -32px; }
+.toolbar-icon-rename { background-position: -48px; }
+.toolbar-icon-undo   { background-position: -64px; }
+.toolbar-icon-redo   { background-position: -80px; }
+.toolbar-icon-reload { background-position: -96px; }
+.toolbar-icon-info   { background-position: -112px; }

@@ -53,6 +53,19 @@ goog.exportSymbol(
   closurekitchen.ConsolePane.addLogRecord);
 
 /**
+ * Append log.
+ * @param {goog.debug.Logger.Level} level One of the level identifiers.
+ * @param {string} msg The string message.
+ * @param {string} loggerName The name of the source logger.
+ */
+closurekitchen.ConsolePane.prototype.addLog = function(level, msg, loggerName) {
+  if(closurekitchen.ConsolePane.divConsole_) {
+	closurekitchen.ConsolePane.divConsole_.addLogRecord(new goog.debug.LogRecord(
+	  level, msg, loggerName));
+  }
+};
+
+/**
  * This method is called by the SplitPane when the browser window is resized.
  * @param {goog.math.Size} size The size of the pane.
  */

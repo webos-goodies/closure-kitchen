@@ -312,7 +312,10 @@ closurekitchen.Project.prototype.duplicateAsPrivate = function() {
  * @return {string} The mime-type.
  */
 closurekitchen.Project.prototype.getContentType = function(format) {
-  return 'application/json';
+  if(format != closurekitchen.Project.Format.COMPILE)
+	return 'application/json';
+  else
+	return 'text/javascript';
 };
 
 /**
@@ -342,7 +345,7 @@ closurekitchen.Project.prototype.serialize = function(format) {
 	 format == closurekitchen.Project.Format.PUBLISH) {
 	obj = { 'n': this.name_, 'j': this.jscode_, 'h': this.htmlcode_ };
   } else if(format == closurekitchen.Project.Format.COMPILE) {
-	obj = { 'j': this.jscode_ };
+	return goog.isString(this.jscode_) ? this.jscode_ : '';
   } else if(format == closurekitchen.Project.Format.RENAME) {
 	if(this.isNew())
 	  obj = { 'n': this.name_, 'j': this.jscode_, 'h': this.htmlcode_ };

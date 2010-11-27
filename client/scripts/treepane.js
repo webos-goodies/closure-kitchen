@@ -1,6 +1,7 @@
 goog.provide('closurekitchen.TreePane');
 goog.require('goog.string');
 goog.require('goog.array');
+goog.require('goog.math.Size');
 goog.require('goog.events.KeyHandler');
 goog.require('goog.ui.tree.TreeControl');
 goog.require('goog.ui.tree.TreeNode');
@@ -74,6 +75,15 @@ closurekitchen.TreePane.TREE_CLASS_NAME_ =
   goog.getCssName(closurekitchen.TreePane.CLASS_NAME_, 'tree');
 
 /**
+ * CSS class name of the book link.
+ * @type {string}
+ * @constant
+ * @private
+ */
+closurekitchen.TreePane.BOOK_CLASS_NAME_ =
+  goog.getCssName(closurekitchen.TreePane.CLASS_NAME_, 'book');
+
+/**
  * The logger for this class.
  * @type { goog.debug.Logger }
  * @private
@@ -86,6 +96,20 @@ closurekitchen.TreePane.logger_ = goog.debug.Logger.getLogger('closurekitchen.Tr
  * @private
  */
 closurekitchen.TreePane.prototype.treeControl_;
+
+/**
+ * The parent element of the tree view.
+ * @type {Element}
+ * @private
+ */
+closurekitchen.TreePane.prototype.treeEl_;
+
+/**
+ * The element for ad.
+ * @type {Element}
+ * @private
+ */
+closurekitchen.TreePane.prototype.bookEl_;
 
 /**
  * A folder node contains private projects.
@@ -255,7 +279,9 @@ closurekitchen.TreePane.prototype.deleteProject = function(project) {
  * @param {goog.math.Size} size The size of the pane.
  */
 closurekitchen.TreePane.prototype.resize = function(size) {
-  goog.style.setSize(this.treeControl_.getElement().parentNode, size);
+  size         = new goog.math.Size(size.width - 2, size.height - 2);
+  size.height -= goog.style.getBorderBoxSize(this.bookEl_).height;
+  goog.style.setSize(this.treeEl_, size);
 };
 
 /**
@@ -320,13 +346,16 @@ closurekitchen.TreePane.prototype.onMenuAction_ = function(e) {
 
 /** @inheritDoc */
 closurekitchen.TreePane.prototype.createDom = function() {
-  var dom          = this.getDomHelper();
   this.treeControl_.createDom();
+  var dom      = this.getDomHelper();
+  var treeRoot = this.treeControl_.getElement();
+  this.treeEl_ = dom.createDom('div', closurekitchen.TreePane.TREE_CLASS_NAME_, treeRoot);
+  this.bookEl_ = dom.createDom(
+	'div', closurekitchen.TreePane.BOOK_CLASS_NAME_,
+	dom.createDom(
+	  'a', {'target': '_blank', 'href': 'http://www.amazon.co.jp/gp/product/4844329626/' }));
   this.setElementInternal(dom.createDom(
-	'div', closurekitchen.TreePane.CLASS_NAME_,
-	dom.createDom('div',
-				  closurekitchen.TreePane.TREE_CLASS_NAME_,
-				  this.treeControl_.getElement())));
+	'div', closurekitchen.TreePane.CLASS_NAME_, this.treeEl_, this.bookEl_));
   this.contextMenu_.render();
 }
 
@@ -355,12 +384,13 @@ closurekitchen.TreePane.prototype.disposeInternal = function() {
   goog.base(this, 'disposeInternal');
   this.contextMenu_ && this.contextMenu_.dispose();
   this.contextMenu_ = null;
+  this.treeEl_      = null;
+  this.bookEl_      = null;
 };
 
 /** @inheritDoc */
 closurekitchen.TreePane.prototype.updateByStatusBundle = function(bundle) {
-  this.appStatus_        = bundle.getAppStatus();
-  this.appStatus_.isTree = true;
+  this.appStatus_ = bundle.getAppStatus();
   goog.base(this, 'updateByStatusBundle', this.createStatusBundle_());
 };
 

@@ -5,7 +5,7 @@ goog.require('goog.ui.Component');
 goog.require('goog.ui.Tab');
 goog.require('goog.ui.TabBar');
 goog.require('goog.ui.Toolbar');
-goog.require('goog.ui.ToolbarButton');
+goog.require('goog.ui.ToolbarSeparator');
 goog.require('closurekitchen.ActionID');
 goog.require('closurekitchen.ActionEvent');
 goog.require('closurekitchen.User');
@@ -16,10 +16,11 @@ goog.require('closurekitchen.HtmlEditorTab');
 goog.require('closurekitchen.PreviewTab');
 
 goog.scope(function() {
-var TabBar         = goog.ui.TabBar;
-var TabBarRenderer = goog.ui.TabBarRenderer;
-var ActionID       = closurekitchen.ActionID;
-var ActionEvent    = closurekitchen.ActionEvent;
+var TabBar           = goog.ui.TabBar;
+var TabBarRenderer   = goog.ui.TabBarRenderer;
+var ToolbarSeparator = goog.ui.ToolbarSeparator;
+var ActionID         = closurekitchen.ActionID;
+var ActionEvent      = closurekitchen.ActionEvent;
 
 /**
  * A component that contains JavaScript / HTML editors and a preview.
@@ -41,8 +42,10 @@ closurekitchen.EditorPane = function(project, opt_domHelper) {
   var builder = new closurekitchen.ComponentBuilder(opt_domHelper);
   this.toolbar_.addChild(builder.buildToolbarButton(ActionID.NEW_PROJECT));
   this.toolbar_.addChild(builder.buildToolbarButton(ActionID.SAVE_CURRENT_PROJECT));
+  this.toolbar_.addChild(new ToolbarSeparator(null, opt_domHelper));
   this.toolbar_.addChild(builder.buildToolbarButton(ActionID.UNDO));
   this.toolbar_.addChild(builder.buildToolbarButton(ActionID.REDO));
+  this.toolbar_.addChild(new ToolbarSeparator(null, opt_domHelper));
   this.toolbar_.addChild(builder.buildToolbarButton(ActionID.UPDATE_PREVIEW));
   this.toolbar_.addChild(builder.buildToolbarButton(ActionID.PUBLISH_CURRENT_PROJECT));
 
@@ -164,7 +167,7 @@ closurekitchen.EditorPane.prototype.setProjectName = function(name) {
  */
 closurekitchen.EditorPane.prototype.onClickProjName_ = function(e) {
   if(this.renamable_) {
-	this.dispatchEvent(new ActionEvent(this, ActionID.RENAME_PROJECT));
+	this.dispatchEvent(new ActionEvent(this, ActionID.RENAME_CURRENT_PROJECT));
   }
 };
 
@@ -284,7 +287,7 @@ closurekitchen.EditorPane.prototype.updateByStatusBundle = function(bundle) {
 	bundle = this.tabContents_[index].updateStatusBundle(bundle);
   }
   goog.base(this, 'updateByStatusBundle', bundle);
-  var status = bundle.getStatus(ActionID.RENAME_PROJECT);
+  var status = bundle.getStatus(ActionID.RENAME_CURRENT_PROJECT);
   if(status && this.projNameEl_) {
 	this.projNameEl_.parentNode.style.display = status.visible ? 'block' : 'none';
 	this.renamable_ = status.enabled;

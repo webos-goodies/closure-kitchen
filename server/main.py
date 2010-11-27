@@ -10,6 +10,7 @@ import Cookie
 
 from google.appengine.api import users
 from google.appengine.api import urlfetch
+from google.appengine.api import memcache
 from google.appengine.ext import db
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp import util
@@ -89,8 +90,8 @@ class Project(db.Model):
       prefix = Project.PREFIX_PRIVATE
     return '%s_%x' % (prefix, self.key().id())
 
-  def load_from_dict(self, data):
-    if 'n' in data:
+  def load_from_dict(self, data, public):
+    if 'n' in data and public:
       self.name = data['n'] or ''
     if 'j' in data:
       self.jscode = data['j'] or ''
@@ -153,7 +154,7 @@ class BaseHandler(webapp.RequestHandler):
     for field in require_fields:
       if field not in req_body:
         raise HttpError(500)
-    type = self.request.headers['Content-Type'] or ''
+    type = self.request.headers.get('Content-Type', '')
     if req_body and type.find('application/json') < 0:
       raise HttpError(400)
 
@@ -187,6 +188,7 @@ class BaseHandler(webapp.RequestHandler):
 
 class TopPageHandler(BaseHandler):
   SANITIZE_PROJECTID_RE = re.compile(r'[^0-9A-Za-z_]')
+  MEMCACHE_NS           = 'sampleindex'
 
   def get(self):
     user      = users.get_current_user()
@@ -229,6 +231,13 @@ class TopPageHandler(BaseHandler):
       return 'guest'
 
   def fetch_samples(self, ck_pid):
+    cache_key = 'index'
+    if ck_pid and ck_pid[0] == Project.PREFIX_PUBLIC:
+      cache_key = ck_pid
+    cache = memcache.get(cache_key, self.__class__.MEMCACHE_NS)
+    if cache is not None:
+      return cache
+    logging.info('Fetch all public projects.')
     projects = Project.get_public_projects()
     result   = {}
     for project in projects:
@@ -238,10 +247,14 @@ class TopPageHandler(BaseHandler):
         entry['j'] = project.jscode
         entry['h'] = project.htmlcode
       result[project_id] = entry
-    return simplejson.dumps(result)
+    result = simplejson.dumps(result)
+    memcache.set(cache_key, result, 60*60*24, namespace=self.__class__.MEMCACHE_NS)
+    return result
 
 
 class CompileHandler(BaseHandler):
+  MEMCACHE_NS = 'compile'
+
   def post(self):
     self.compile_js()
 
@@ -249,16 +262,30 @@ class CompileHandler(BaseHandler):
     self.compile_js()
 
   def compile_js(self):
-    req_body = simplejson.loads(self.request.body)
-    self.validate_request(req_body, ('j'))
-    rpc = self.request_compilation(req_body['j'])
-    result = rpc.get_result()
-    if result.status_code == 200:
-      self.response.headers['Content-Type'] = 'application/json'
-      self.response.out.write(result.content)
+    if self.request.headers.get('Content-Type', '').find('text/javascript') < 0:
+      raise HttpError(400)
+    jsSrc = self.request.body.strip()
+    cache = memcache.get(jsSrc, self.__class__.MEMCACHE_NS)
+    if cache is not None:
+      cache = simplejson.loads(cache)
     else:
-      self.response.headers['Content-Type'] = 'text/plain'
-      self.response.out.write('Compilation failed.')
+      cache = {}
+    if not ('src' in cache and cache['src'] == jsSrc):
+      logging.info('Request to Closure Compiler Service.')
+      rpc    = self.request_compilation(jsSrc)
+      result = rpc.get_result()
+      if result.status_code == 200:
+        cache = simplejson.loads(result.content)
+        cache['src'] = jsSrc
+      else:
+        cache = {
+          'src': jsSrc,
+          'compiledCode': '',
+          'errors': [{'lineno': 0, 'error': 'Compilation request is failed.'}] }
+      memcache.set(jsSrc, simplejson.dumps(cache), namespace=self.__class__.MEMCACHE_NS)
+    del cache['src']
+    self.response.headers['Content-Type'] = 'application/json'
+    self.response.out.write(simplejson.dumps(cache))
 
   def request_compilation(self, code):
     headers = {
@@ -324,7 +351,7 @@ class ProjectsHandler(BaseHandler):
       user_data.put()
     if ('j' in req_body) or ('h' in req_body):
       project = Project.get_by_project_id_safe(key, user_data.id_or_name())
-      project.load_from_dict(req_body)
+      project.load_from_dict(req_body, False)
       project.put()
 
   def put_public(self, key, req_body):
@@ -333,7 +360,7 @@ class ProjectsHandler(BaseHandler):
       raise HttpError(403)
     user_id = user.user_id()
     project = Project.get_by_project_id_safe(key, user_id)
-    project.load_from_dict(req_body)
+    project.load_from_dict(req_body, True)
     project.put()
 
   def delete(self):
