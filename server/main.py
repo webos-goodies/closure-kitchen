@@ -307,10 +307,15 @@ class CompileHandler(BaseHandler):
 
 class ProjectsHandler(BaseHandler):
   def get(self):
-    key       = self.get_project_id()
-    user_data = self.get_user_data()
-    user_id   = user_data and user_data.id_or_name()
-    project   = Project.get_by_project_id_safe(key, user_id)
+    key = self.get_project_id()
+    if key[0] == Project.PREFIX_PRIVATE:
+      user_data = self.get_user_data()
+      user_id   = user_data and user_data.id_or_name()
+      project   = Project.get_by_project_id(key, user_id)
+    elif key[0] == Project.PREFIX_PUBLIC:
+      project = Project.get_by_project_id(key, None)
+    if not project:
+      raise HttpError(404)
     self.output_json({ 'j': project.jscode, 'h': project.htmlcode })
 
   def post(self):

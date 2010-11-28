@@ -68,7 +68,7 @@ closurekitchen.StatusBundle.prototype.build = function() {
   this.setActionStatus(ActionID.NEW_PROJECT,             true,    exist);
   this.setActionStatus(ActionID.OPEN_PROJECT,            true,    exist);
   this.setActionStatus(ActionID.RENAME_PROJECT,          true,    canRename);
-  this.setActionStatus(ActionID.DELETE_PROJECT,          isUser,  exist && (isAdmin || isPriv));
+  this.setActionStatus(ActionID.DELETE_PROJECT,          true,    exist && (isAdmin || isPriv));
   this.setActionStatus(ActionID.SAVE_CURRENT_PROJECT,    true,    exist && isUser && isMod);
   this.setActionStatus(ActionID.RENAME_CURRENT_PROJECT,  isUser,  isUser);
   this.setActionStatus(ActionID.PUBLISH_CURRENT_PROJECT, isAdmin, isAdmin && isPriv);

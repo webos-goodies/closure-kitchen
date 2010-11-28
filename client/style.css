@@ -119,3 +119,8 @@ body { overflow: hidden; margin: 4px; }
 .toolbar-icon-redo   { background-position: -80px; }
 .toolbar-icon-reload { background-position: -96px; }
 .toolbar-icon-info   { background-position: -112px; }
+
+/* 注意点ダイアログ */
+#caution-dialog   { font-size: 12px; width: 40em; line-height: 1.5; }
+#caution-dialog a { color: gray; }
+.modal-dialog-buttons { text-align: right; padding-right: 16px; }

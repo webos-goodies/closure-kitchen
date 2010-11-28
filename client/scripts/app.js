@@ -7,9 +7,12 @@ goog.require('goog.dom');
 goog.require('goog.dom.forms');
 goog.require('goog.dom.ViewportSizeMonitor');
 goog.require('goog.style');
+goog.require('goog.fx.dom.FadeInAndShow');
+goog.require('goog.fx.dom.FadeOutAndHide');
 goog.require('goog.events.EventHandler');
 goog.require('goog.net.cookies');
 goog.require('goog.ui.KeyboardShortcutHandler');
+goog.require('goog.ui.Dialog');
 goog.require('goog.debug.Logger');
 goog.require('goog.debug.Console');
 goog.require('closurekitchen.ActionID');
@@ -107,6 +110,22 @@ closurekitchen.App = function() {
   this.rootComponent_.finishInitialization();
 
   window.onbeforeunload = goog.bind(this.onUnload_, this);
+
+  var indicator  = goog.dom.getElement('xhr-indicator');
+  var xhrManager = closurekitchen.Project.getXhrManager();
+  this.fadeInIndicator_  = new goog.fx.dom.FadeInAndShow(indicator, 10);
+  this.fadeOutIndicator_ = new goog.fx.dom.FadeOutAndHide(indicator, 1000);
+  this.eventHandler_.
+    listen(xhrManager, goog.net.EventType.READY,    this.onXhrReady_).
+    listen(xhrManager, goog.net.EventType.COMPLETE, this.onXhrComplete_);
+
+  if(!this.user_.isUser()) {
+	var dialog = new goog.ui.Dialog();
+	dialog.setTitle(goog.getMsg('ご利用上の注意'));
+	dialog.setButtonSet(goog.ui.Dialog.ButtonSet.OK);
+	goog.dom.appendChild(dialog.getContentElement(), goog.dom.getElement('caution-dialog'));
+	dialog.setVisible(true);
+  }
 };
 goog.addSingletonGetter(closurekitchen.App);
 
@@ -219,6 +238,20 @@ closurekitchen.App.prototype.projNameDialog_;
  * @private
  */
 closurekitchen.App.prototype.shortcuts_;
+
+/**
+ * Fade in animation of the network access indicator.
+ * @type {goog.fx.dom.FadeInAndShow}
+ * @private
+ */
+closurekitchen.App.prototype.fadeInIndicator_;
+
+/**
+ * Fade out animation of the network access indicator.
+ * @type {goog.fx.dom.FadeOutAndHide}
+ * @private
+ */
+closurekitchen.App.prototype.fadeOutIndicator_;
 
 /**
  * Save the project information into the local storage.
@@ -354,11 +387,38 @@ closurekitchen.App.prototype.onSplitDelayFired_ = function() {
  * @private
  */
 closurekitchen.App.prototype.onUnload_ = function(e) {
+  console.log('unload');
   e = e || window.event;
   if(this.isModified_) {
 	var msg       = goog.getMsg('The curent project is modified.\nDiscard anyway?');
 	e.returnValue = msg;
 	return msg
+  }
+};
+
+/**
+ * Event handler for READY of any ajax request.
+ * @param {goog.events.Event} e Event object.
+ * @private
+ */
+closurekitchen.App.prototype.onXhrReady_ = function(e) {
+  var xhrManager = closurekitchen.Project.getXhrManager();
+  if(xhrManager.getOutstandingCount() == 1) {
+    this.fadeOutIndicator_.stop(false);
+    this.fadeInIndicator_.play(true);
+  }
+};
+
+/**
+ * Event handler for COMPLETE of any ajax request.
+ * @param {goog.events.Event} e Event object.
+ * @private
+ */
+closurekitchen.App.prototype.onXhrComplete_ = function(e) {
+  var xhrManager = closurekitchen.Project.getXhrManager();
+  if(xhrManager.getOutstandingCount() == 1) {
+    this.fadeInIndicator_.stop(false);
+    this.fadeOutIndicator_.play(true);
   }
 };
 

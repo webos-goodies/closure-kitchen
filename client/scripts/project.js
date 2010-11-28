@@ -95,6 +95,14 @@ closurekitchen.Project.nextXhrId_ = 1;
 closurekitchen.Project.requests_ = {};
 
 /**
+ * Returns an XhrManager.
+ * @return {goog.net.XhrManager} An XhrManager.
+ */
+closurekitchen.Project.getXhrManager = function() {
+  return closurekitchen.Project.xhrManager_;
+};
+
+/**
  * Outputs the response to the logger.
  * @param {goog.net.XhrIo} xhr A XhrIo instance.
  * @private
