@@ -62,8 +62,11 @@ closurekitchen.ConsolePane.prototype.contextMenu_;
  */
 closurekitchen.ConsolePane.addLogRecord = function(logRecord) {
   if(closurekitchen.ConsolePane.divConsole_) {
-	closurekitchen.ConsolePane.divConsole_.addLogRecord(new goog.debug.LogRecord(
-	  logRecord['level'], logRecord['msg'], logRecord['loggerName'], logRecord['time']));
+	var record = new goog.debug.LogRecord(
+	  logRecord['level'], logRecord['msg'], logRecord['loggerName'], logRecord['time']);
+	record.setException(logRecord['exception']);
+	record.setExceptionText(logRecord['exceptionText']);
+	closurekitchen.ConsolePane.divConsole_.addLogRecord(record);
   }
 };
 goog.exportSymbol(

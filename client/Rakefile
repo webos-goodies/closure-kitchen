@@ -237,7 +237,7 @@ task :deps do
       "--output_file=#{DEPS_FILE}"].flatten.join(' ')
 end
 
-task :build => [:index, :files, :script] do
+task :build => [:index, :files, :styles, :script] do
 end
 
 task :index do |t, args|
