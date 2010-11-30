@@ -27,7 +27,7 @@ goog.require('goog.debug.LogManager');
 (function() {
   function logProxy(r) {
     window.parent['closurekitchen']['ConsolePane']['addLogRecord']({
-      'level': r.getLevel(), 'msg': r.getMessage(), 'loggerName': r.getLoggerName(), 'time': r.getMillis() });
+      'level': r.getLevel(), 'msg': r.getMessage(), 'loggerName': r.getLoggerName(), 'time': r.getMillis(),'exception':r.getException(),'exceptionText':r.getExceptionText() });
   }
   goog.debug.LogManager.getRoot().addHandler(logProxy);
 })();
@@ -264,13 +264,13 @@ class CompileHandler(BaseHandler):
   def compile_js(self):
     if self.request.headers.get('Content-Type', '').find('text/javascript') < 0:
       raise HttpError(400)
-    jsSrc = self.request.body.strip()
+    jsSrc = unicode(self.request.body.strip(), 'utf-8')
     cache = memcache.get(jsSrc, self.__class__.MEMCACHE_NS)
     if cache is not None:
       cache = simplejson.loads(cache)
     else:
       cache = {}
-    if not ('src' in cache and cache['src'] == jsSrc):
+    if not ('src' in cache and unicode(cache['src']) == jsSrc):
       logging.info('Request to Closure Compiler Service.')
       rpc    = self.request_compilation(jsSrc)
       result = rpc.get_result()
