@@ -6,6 +6,11 @@ api_version: 1
 handlers:
 - url: /files
   static_dir: files
+  expiration: 1h
+
+- url: /closure-library
+  static_dir: closure-library
+  expiration: 24h
 
 - url: /.*
   script: main.py

@@ -250,18 +250,31 @@ task :index do |t, args|
   end
 end
 
-task :files do
-  mkdir_p(File.join(SERVER_DIR, STATIC_DIR), :verbose => false)
+def copy_dir(src, dst)
+  mkdir_p(dst, :verbose => false)
+  dirs  = []
   files = []
-  Dir.glob(File.join(STATIC_DIR, '**', '*')) do |fname|
-    if File.directory?(fname)
-      mkdir_p(File.join(SERVER_DIR, fname), :verbose => false)
-    else
-      files << fname
+  Dir.chdir(src) do
+    Dir.glob('**/*') do |fname|
+      (File.directory?(fname) ? dirs : files) << fname
     end
   end
+  dirs.each do |dirname|
+    mkdir_p(File.join(dst, dirname), :verbose => false)
+  end
   files.each do |fname|
-    cp(fname, File.join(SERVER_DIR, fname), :verbose => false)
+    cp(File.join(src, fname), File.join(dst, fname), :verbose => false)
+  end
+end
+
+task :files do
+  copy_dir(STATIC_DIR, File.join(SERVER_DIR, STATIC_DIR))
+end
+
+task :styles do
+  ['closure/goog/css', 'closure/goog/images'].each do |dirname|
+    copy_dir(File.join(CLOSURE_LIB_DIR, dirname),
+             File.join(SERVER_DIR, 'closure-library', dirname))
   end
 end
 
