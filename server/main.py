@@ -294,7 +294,8 @@ class CompileHandler(BaseHandler):
       'js_code':             code.encode('utf-8'),
       'compilation_level':   'ADVANCED_OPTIMIZATIONS',
       'output_format':       'json',
-      'use_closure_library': 'true' }
+      'use_closure_library': 'true',
+      'formatting':          'pretty_print' }
     output_info = 'output_info=compiled_code&output_info=warnings&output_info=errors&'
     rpc = urlfetch.create_rpc(deadline=10)
     urlfetch.make_fetch_call(rpc=rpc,

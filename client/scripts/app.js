@@ -647,18 +647,20 @@ closurekitchen.App.prototype.actionUpdatePreview_ = function() {
  */
 closurekitchen.App.prototype.onUpdatePreviewCompleted_ = function(jsSrc, project, request, xhr) {
   var body = xhr.getResponseJson();
-  if(goog.isArray(body['warnings'])) {
-	goog.array.forEach(body['warnings'], function(record) {
-	  var msg = goog.string.subs('line %s : %s', record['lineno']||0, record['warning']||'');
-	  this.consolePane_.addLog(goog.debug.Logger.Level.WARNING, msg, 'warning');
-	}, this);
-  }
-  if(goog.isArray(body['errors'])) {
-	goog.array.forEach(body['errors'], function(record) {
-	  var msg = goog.string.subs('line %s : %s', record['lineno']||0, record['error']||'');
-	  this.consolePane_.addLog(goog.debug.Logger.Level.SEVERE, msg, 'error');
-	}, this);
-  }
+  goog.array.forEach(
+	['warnings', 'errors', 'serverErrors'], function(l) { body[l] = body[l]||[] }, this);
+  goog.array.forEach(body['warnings'], function(record) {
+	var msg = goog.string.subs('line %s : %s', record['lineno']||0, record['warning']||'');
+	closurekitchen.ConsolePane.addLog(goog.debug.Logger.Level.WARNING, msg, 'warning');
+  }, this);
+  goog.array.forEach(body['errors'], function(record) {
+	var msg = goog.string.subs('line %s : %s', record['lineno']||0, record['error']||'');
+	closurekitchen.ConsolePane.addLog(goog.debug.Logger.Level.SEVERE, msg, 'error');
+  }, this);
+  goog.array.forEach(body['serverErrors'], function(record) {
+	closurekitchen.ConsolePane.addLog(
+	  goog.debug.Logger.Level.SEVERE, record['error']||'', 'server error');
+  }, this);
   this.updatePreview_(goog.isString(body['compiledCode']) ? body['compiledCode'] : '',
 					  jsSrc, project.getHtmlCode());
 };

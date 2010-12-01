@@ -79,7 +79,7 @@ goog.exportSymbol(
  * @param {string} msg The string message.
  * @param {string} loggerName The name of the source logger.
  */
-closurekitchen.ConsolePane.prototype.addLog = function(level, msg, loggerName) {
+closurekitchen.ConsolePane.addLog = function(level, msg, loggerName) {
   if(closurekitchen.ConsolePane.divConsole_) {
 	closurekitchen.ConsolePane.divConsole_.addLogRecord(new goog.debug.LogRecord(
 	  level, msg, loggerName));
