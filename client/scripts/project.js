@@ -128,7 +128,7 @@ closurekitchen.Project.logResponse_ = function(xhr) {
  * @return {*} The return value of callback.
  * @private
  */
-closurekitchen.Project.initiateCallback_ = function(callback, scope, args) {
+closurekitchen.Project.invokeCallback_ = function(callback, scope, args) {
   if(callback) {
 	goog.asserts.assertFunction(
 	  callback, 'callback must be a function but %s', goog.typeOf(callback));
@@ -394,10 +394,11 @@ closurekitchen.Project.prototype.load = function(data, opt_format) {
  * Fetches the contents of the project from the remote server.
  * @param {Function=} opt_callback This function is called when the request is complete.
  * @param {Object=} opt_scope The scope of the callback.
+ * @param {Function=} opt_error This function is called when the request is failed.
  */
-closurekitchen.Project.prototype.fetch = function(opt_callback, opt_scope) {
+closurekitchen.Project.prototype.fetch = function(opt_callback, opt_scope, opt_error) {
   if(this.isFetched() || closurekitchen.Project.LOCAL_MODE) {
-	closurekitchen.Project.initiateCallback_(opt_callback, opt_scope, [this]);
+	closurekitchen.Project.invokeCallback_(opt_callback, opt_scope, [this]);
 	return;
   }
 
@@ -408,7 +409,7 @@ closurekitchen.Project.prototype.fetch = function(opt_callback, opt_scope) {
     id, this.getRequestUrl(closurekitchen.Project.Format.ALL),
 	'GET', null, {}, 0, goog.bind(this.processResponse_, this, id));
   closurekitchen.Project.requests_[id] = new closurekitchen.Project.Request(
-	request, closurekitchen.Project.Format.ALL, opt_callback, opt_scope);
+	request, closurekitchen.Project.Format.ALL, opt_callback, opt_error, opt_scope);
 
   this.jscode_   = '';
   this.htmlcode_ = '';
@@ -431,12 +432,12 @@ closurekitchen.Project.prototype.put = function(format, opt_callback, opt_scope)
 	  0, goog.bind(this.processResponse_, this, id));
 
 	closurekitchen.Project.requests_[id] =
-	  new closurekitchen.Project.Request(request, format, opt_callback, opt_scope);
+	  new closurekitchen.Project.Request(request, format, opt_callback, null, opt_scope);
   } else {
 	if(this.isNew() && format != closurekitchen.Project.Format.PUBLISH) {
 	  this.load('{"id":"' + Math.random() + '"}', format);
 	}
-	closurekitchen.Project.initiateCallback_(opt_callback, opt_scope, [this]);
+	closurekitchen.Project.invokeCallback_(opt_callback, opt_scope, [this]);
   }
 };
 
@@ -450,7 +451,7 @@ closurekitchen.Project.prototype.del = function(opt_callback, opt_scope) {
 	return;
   }
   if(this.isNew() || closurekitchen.Project.LOCAL_MODE) {
-	closurekitchen.Project.initiateCallback_(opt_callback, opt_scope, [this]);
+	closurekitchen.Project.invokeCallback_(opt_callback, opt_scope, [this]);
 	return;
   }
 
@@ -461,7 +462,7 @@ closurekitchen.Project.prototype.del = function(opt_callback, opt_scope) {
     id, this.getRequestUrl(closurekitchen.Project.Format.ALL),
 	'DELETE', null, {}, 0, goog.bind(this.processResponse_, this, id));
   closurekitchen.Project.requests_[id] = new closurekitchen.Project.Request(
-	request, closurekitchen.Project.Format.ALL, opt_callback, opt_scope);
+	request, closurekitchen.Project.Format.ALL, opt_callback, null, opt_scope);
   this.isDeleted_ = true;
 };
 
@@ -485,13 +486,24 @@ closurekitchen.Project.prototype.processResponse_ = function(requestId, e) {
 		this.load(xhr.getResponseText(), request.getFormat());
 	  }
 	  try {
-		request.initiateCallback([this, request, xhr]);
+		request.invokeCallback([this, request, xhr]);
 	  } catch(e) {
 		closurekitchen.Project.logger_.severe(
 		  'The exception is raised in the callback.', e);
 	  }
 	  if(method == 'DELETE') {
 		this.dispose();
+	  }
+	} else {
+	  try {
+		request.invokeErrorCallback([this, request, xhr]);
+	  } catch(e) {
+		closurekitchen.Project.logger_.severe(
+		  'The exception is raised in the error callback.', e);
+	  }
+	  if(request.getRequest().getMethod() == 'GET') {
+		this.jscode_   = null;
+		this.htmlcode_ = null;
 	  }
 	}
   } finally {
@@ -503,17 +515,19 @@ closurekitchen.Project.prototype.processResponse_ = function(requestId, e) {
  * Request information.
  * @param {goog.net.XhrManager.Request} request Request object.
  * @param {closurekitchen.Project.Format} format Request format of this request.
- * @param {Function} callback Function called when this request is completed.
- * @param {Object=}  opt_scope this object of callback.
+ * @param {?Function} callback Function called when this request is completed.
+ * @param {?Function} error Function called when this request is failed.
+ * @param {?Object}  opt_scope this object of callback.
  * @constructor
  * @extends {goog.Disposable}
  */
-closurekitchen.Project.Request = function(request, format, callback, opt_scope) {
+closurekitchen.Project.Request = function(request, format, callback, error, scope) {
   goog.base(this);
-  this.request_  = request;
-  this.format_   = format;
-  this.callback_ = callback;
-  this.scope_    = opt_scope || null;
+  this.request_       = request;
+  this.format_        = format;
+  this.callback_      = callback || goog.nullFunction;
+  this.errorCallback_ = error    || goog.nullFunction;
+  this.scope_         = scope    || null;
 };
 goog.inherits(closurekitchen.Project.Request, goog.Disposable);
 
@@ -539,6 +553,13 @@ closurekitchen.Project.Request.prototype.format_;
 closurekitchen.Project.Request.prototype.callback_;
 
 /**
+ * Function called when this request is failed.
+ * @type {Function}
+ * @private
+ */
+closurekitchen.Project.Request.prototype.errorCallback_;
+
+/**
  * this object of callback.
  * @type {Object}
  * @private
@@ -548,10 +569,11 @@ closurekitchen.Project.Request.prototype.scope_;
 /** @inheritDoc */
 closurekitchen.Project.Request.prototype.disposeInternal = function() {
   goog.base(this, 'disposeInternal');
-  this.request_  = null;
-  this.format_   = null;
-  this.callback_ = null;
-  this.scope_    = null;
+  this.request_       = null;
+  this.format_        = null;
+  this.callback_      = null;
+  this.errorCallback_ = null;
+  this.scope_         = null;
 };
 
 /**
@@ -571,10 +593,19 @@ closurekitchen.Project.Request.prototype.getFormat = function() {
 };
 
 /**
- * Initiates the callback function.
+ * invokes the callback function.
  * @param {Array=} args The arguments passed to callback.
  * @return {*} The return value of callback.
  */
-closurekitchen.Project.Request.prototype.initiateCallback = function(args) {
-  return closurekitchen.Project.initiateCallback_(this.callback_, this.scope_, args);
+closurekitchen.Project.Request.prototype.invokeCallback = function(args) {
+  return closurekitchen.Project.invokeCallback_(this.callback_, this.scope_, args);
+};
+
+/**
+ * invokes the error callback function.
+ * @param {Array=} args The arguments passed to callback.
+ * @return {*} The return value of callback.
+ */
+closurekitchen.Project.Request.prototype.invokeErrorCallback = function(args) {
+  return closurekitchen.Project.invokeCallback_(this.errorCallback_, this.scope_, args);
 };

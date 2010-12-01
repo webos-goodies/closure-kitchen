@@ -313,7 +313,7 @@ closurekitchen.App.prototype.openProject_ = function(project) {
 	this.currentProject_ = null;
   }
   this.currentProject_ = project;
-  project.fetch(this.openProjectCompleted_, this);
+  project.fetch(this.openProjectCompleted_, this, this.openProjectFailed_);
 };
 
 /**
@@ -325,6 +325,23 @@ closurekitchen.App.prototype.openProjectCompleted_ = function(project) {
   if(this.currentProject_.getId() == project.getId()) {
 	this.editorPane_.importFromProject(project);
 	this.saveProjectLocally_(this.currentProject_);
+  }
+};
+
+/**
+ * This function is called when the request of the project's content is failed.
+ * @param {closurekitchen.Project} project The project.
+ * @private
+ */
+closurekitchen.App.prototype.openProjectFailed_ = function(project) {
+  if(this.currentProject_.getId() == project.getId()) {
+	this.currentProject_ = new Project(Project.Type.PRIVATE);
+	this.editorPane_.importFromProject(this.currentProject_);
+	this.saveProjectLocally_(this.currentProject_);
+	closurekitchen.ConsolePane.addLog(
+	  goog.debug.Logger.Level.SEVERE,
+	  goog.getMsg('Failed to load "' + (project.getName()||'') + '"'),
+	  'error');
   }
 };
 
