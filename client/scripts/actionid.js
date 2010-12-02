@@ -12,6 +12,7 @@ closurekitchen.ActionID = {
   RENAME_PROJECT:          'RENAME_PROJECT',
   DELETE_PROJECT:          'DELETE_PROJECT',
   SAVE_CURRENT_PROJECT:    'SAVE_CURRENT_PROJECT',
+  CLONE_CURRENT_PROJECT:   'CLONE_CURRENT_PROJECT',
   RENAME_CURRENT_PROJECT:  'RENAME_CURRENT_PROJECT',
   PUBLISH_CURRENT_PROJECT: 'PUBLISH_CURRENT_PROJECT',
   UNDO:                    'UNDO',
@@ -66,6 +67,12 @@ closurekitchen.ActionMetaData[closurekitchen.ActionID.SAVE_CURRENT_PROJECT] = {
   cls:     'toolbar-icon toolbar-icon-save',
   content: goog.getMsg('Save'),
   tooltip: goog.getMsg('Save this project.')
+};
+closurekitchen.ActionMetaData[closurekitchen.ActionID.CLONE_CURRENT_PROJECT] = {
+  type:    closurekitchen.ActionType.ONE_SHOT,
+  cls:     'toolbar-icon toolbar-icon-clone',
+  content: goog.getMsg('Clone'),
+  tooltip: goog.getMsg('Create a new project with this javascript / html code.')
 };
 closurekitchen.ActionMetaData[closurekitchen.ActionID.RENAME_CURRENT_PROJECT] = {
   type:    closurekitchen.ActionType.ONE_SHOT,

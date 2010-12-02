@@ -14,6 +14,7 @@ goog.require('closurekitchen.ComponentBuilder');
 goog.require('closurekitchen.JsEditorTab');
 goog.require('closurekitchen.HtmlEditorTab');
 goog.require('closurekitchen.PreviewTab');
+goog.require('closurekitchen.CompiledCodeTab');
 
 goog.scope(function() {
 var TabBar           = goog.ui.TabBar;
@@ -42,6 +43,7 @@ closurekitchen.EditorPane = function(project, opt_domHelper) {
   var builder = new closurekitchen.ComponentBuilder(opt_domHelper);
   this.toolbar_.addChild(builder.buildToolbarButton(ActionID.NEW_PROJECT));
   this.toolbar_.addChild(builder.buildToolbarButton(ActionID.SAVE_CURRENT_PROJECT));
+  this.toolbar_.addChild(builder.buildToolbarButton(ActionID.CLONE_CURRENT_PROJECT));
   this.toolbar_.addChild(new ToolbarSeparator(null, opt_domHelper));
   this.toolbar_.addChild(builder.buildToolbarButton(ActionID.UNDO));
   this.toolbar_.addChild(builder.buildToolbarButton(ActionID.REDO));
@@ -55,7 +57,8 @@ closurekitchen.EditorPane = function(project, opt_domHelper) {
   this.tabContents_ = [
 	new closurekitchen.JsEditorTab(project.getJsCode(), opt_domHelper),
 	new closurekitchen.HtmlEditorTab(project.getHtmlCode(), opt_domHelper),
-	new closurekitchen.PreviewTab(opt_domHelper)];
+	new closurekitchen.PreviewTab(opt_domHelper),
+	new closurekitchen.CompiledCodeTab(opt_domHelper)];
 
   goog.array.forEach(this.tabContents_, function(content) {
 	this.tabBar_.addChild(new goog.ui.Tab(content.getCaption(), null, opt_domHelper));
@@ -207,10 +210,12 @@ closurekitchen.EditorPane.prototype.importFromProject = function(project) {
 
 /**
  * Update preview.
- * @param {string} html html code to display.
+ * @param {string} html An html code to display.
+ * @param {string} js A compiled javascript code.
  */
-closurekitchen.EditorPane.prototype.updatePreview = function(html) {
+closurekitchen.EditorPane.prototype.updatePreview = function(html, js) {
   this.tabContents_[2].setContent(html);
+  this.tabContents_[3].setContent(js);
   this.tabBar_.setSelectedTabIndex(2);
 };
 

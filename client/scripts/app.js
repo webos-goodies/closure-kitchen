@@ -290,6 +290,7 @@ closurekitchen.App.prototype.updateComponents_ = function() {
 		isUser:     this.user_.isUser(),
 		isAdmin:    this.user_.isAdmin(),
 		isPriv:     this.currentProject_.isPrivate(),
+		isNew:      this.currentProject_.isNew(),
 		isModified: this.isModified_,
 		exist:      true
 	  });
@@ -404,9 +405,11 @@ closurekitchen.App.prototype.onSplitDelayFired_ = function() {
  * @private
  */
 closurekitchen.App.prototype.onUnload_ = function(e) {
-  console.log('unload');
   e = e || window.event;
-  if(this.isModified_) {
+  if(!this.user_.isUser()) {
+	this.editorPane_.exportToProject(this.currentProject_);
+	this.saveProjectLocally_(this.currentProject_);
+  } else if(this.isModified_) {
 	var msg       = goog.getMsg('The curent project is modified.\nDiscard anyway?');
 	e.returnValue = msg;
 	return msg
@@ -487,6 +490,10 @@ closurekitchen.App.prototype.onAction_ = function(e) {
 	}
   } else if(actionId == ActionID.SAVE_CURRENT_PROJECT) {
 	this.actionSaveCurrentProject_();
+  } else if(actionId == ActionID.CLONE_CURRENT_PROJECT) {
+	if(this.confirmToClose_()) {
+	  this.actionCloneCurrentProject_();
+	}
   } else if(actionId == ActionID.RENAME_CURRENT_PROJECT) {
 	this.actionRenameCurrentProject_();
   } else if(actionId == ActionID.PUBLISH_CURRENT_PROJECT) {
@@ -596,6 +603,24 @@ closurekitchen.App.prototype.actionSaveCurrentProject_ = function() {
 	}
   } else {
 	closurekitchen.App.logger_.severe('Invoked SAVE_CURRENT_PROJECT command by guest.');
+  }
+};
+
+/**
+ * Processes CLONE_CURRENT_PROJECT action.
+ * @private
+ */
+closurekitchen.App.prototype.actionCloneCurrentProject_ = function() {
+  if(this.user_.isUser() && !this.currentProject_.isNew()) {
+	var project = new Project(Project.Type.PRIVATE, {
+	  'j': this.currentProject_.getJsCode(),
+	  'h': this.currentProject_.getHtmlCode()
+	});
+	this.openProject_(project);
+	this.isModified_ = true;
+  } else {
+	closurekitchen.App.logger_.severe(
+	  'CLONE_CURRENT_PROJECT action is ignored due to illegal status.');
   }
 };
 
@@ -716,9 +741,10 @@ closurekitchen.App.prototype.updatePreview_ = function(jsCode, jsSrc, htmlCode) 
 	this.jsCache_.shift();
   }
   this.jsCache_.push({ src: jsSrc, compiled: jsCode});
-  jsCode   = jsCode.replace(/<\/(script)/i, '<\\\\/\1');
-  htmlCode = htmlCode.replace(/\{\{\s*script\s*\}\}/i, function() { return jsCode; });
-  this.editorPane_.updatePreview(htmlCode);
+  var jsTag = ('<script type="text/javascript">' +
+			   jsCode.replace(/<\/(script)/i, '<\\\\/\1') + '</script>');
+  htmlCode = htmlCode.replace(/\{\{\s*script\s*\}\}/i, function() { return jsTag; });
+  this.editorPane_.updatePreview(htmlCode, jsCode);
 };
 
 goog.debug.Console.autoInstall();

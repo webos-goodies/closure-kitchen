@@ -299,6 +299,7 @@ closurekitchen.TreePane.prototype.resize = function(size) {
 closurekitchen.TreePane.prototype.createStatusBundle_ = function() {
   var projectId = this.getSelectedProjectId();
   var project   = projectId && Project.findById(projectId);
+  this.appStatus_.isNew      = false;
   this.appStatus_.isModified = false;
   this.appStatus_.exist      = !!project;
   if(project) {

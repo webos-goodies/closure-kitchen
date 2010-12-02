@@ -60,21 +60,23 @@ closurekitchen.StatusBundle.prototype.build = function() {
   var isUser    = !!this.appStatus_.isUser;
   var isAdmin   = !!this.appStatus_.isAdmin;
   var isPriv    = !!this.appStatus_.isPriv;
+  var isNew     = !!this.appStatus_.isNew;
   var isMod     = !!this.appStatus_.isModified;
   var exist     = !!this.appStatus_.exist;
   var canUndo   = !!this.appStatus_.canUndo;
   var canRedo   = !!this.appStatus_.canRedo;
   var canRename = exist && isUser && (isAdmin || isPriv);
-  this.setActionStatus(ActionID.NEW_PROJECT,             true,    exist);
+  this.setActionStatus(ActionID.NEW_PROJECT,             true,    true);
   this.setActionStatus(ActionID.OPEN_PROJECT,            true,    exist);
   this.setActionStatus(ActionID.RENAME_PROJECT,          true,    canRename);
   this.setActionStatus(ActionID.DELETE_PROJECT,          true,    exist && (isAdmin || isPriv));
-  this.setActionStatus(ActionID.SAVE_CURRENT_PROJECT,    true,    exist && isUser && isMod);
+  this.setActionStatus(ActionID.SAVE_CURRENT_PROJECT,    true,    isUser && isMod);
+  this.setActionStatus(ActionID.CLONE_CURRENT_PROJECT,   true,    isUser && !isNew);
   this.setActionStatus(ActionID.RENAME_CURRENT_PROJECT,  isUser,  isUser);
   this.setActionStatus(ActionID.PUBLISH_CURRENT_PROJECT, isAdmin, isAdmin && isPriv);
   this.setActionStatus(ActionID.UNDO,                    true,    canUndo);
   this.setActionStatus(ActionID.REDO,                    true,    canRedo);
-  this.setActionStatus(ActionID.UPDATE_PREVIEW,          true,    exist);
+  this.setActionStatus(ActionID.UPDATE_PREVIEW,          true,    true);
 };
 
 /**
