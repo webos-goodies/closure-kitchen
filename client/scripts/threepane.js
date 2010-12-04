@@ -1,4 +1,5 @@
 goog.provide('closurekitchen.ThreePane');
+goog.require('goog.math.Size');
 goog.require('goog.dom.DomHelper');
 goog.require('goog.style');
 goog.require('goog.ui.SplitPane');
@@ -94,10 +95,10 @@ closurekitchen.ThreePane.SplitPane.prototype.resize = function(size) {
   if(this.initialized_) {
 	var oldSize = goog.style.getBorderBoxSize(this.getElement());
 	var topSize = this.getFirstComponentSize();
-	this.setSize(size);
+	this.setSize(new goog.math.Size(Math.max(size.width, 1), Math.max(size.height, 1)));
 	this.setFirstComponentSize(topSize + size.height - oldSize.height);
   } else {
-	this.setSize(size);
+	this.setSize(new goog.math.Size(Math.max(size.width, 1), Math.max(size.height, 1)));
   }
 };
 

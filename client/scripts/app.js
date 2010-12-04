@@ -365,7 +365,8 @@ closurekitchen.App.prototype.confirmToClose_ = function() {
 closurekitchen.App.prototype.computeRootSize_ = function() {
   var size      = this.viewportSize_.getSize();
   var titleSize = goog.style.getBorderBoxSize(goog.dom.getElement('title'));
-  return new goog.math.Size(size.width - 4 * 2, size.height - 4*2 - titleSize.height);
+  return new goog.math.Size(Math.max(size.width - 4 * 2, 1),
+							Math.max(size.height - 4*2 - titleSize.height, 1));
 };
 
 /**

@@ -1,5 +1,6 @@
 goog.provide('closurekitchen.AbstractEditorTab');
 goog.require('goog.string');
+goog.require('goog.math.Size');
 goog.require('goog.style');
 goog.require('goog.ui.Component');
 goog.require('closurekitchen.i18n');
@@ -52,7 +53,8 @@ closurekitchen.AbstractEditorTab.prototype.showContent = function(flag) {
  * @param {goog.math.Size} size The size of the content.
  */
 closurekitchen.AbstractEditorTab.prototype.resize = function(size) {
-  goog.style.setSize(this.getElement(), size);
+  goog.style.setSize(this.getElement(), new goog.math.Size(
+	size.width > 1 ? size.width : 1, size.height > 1 ? size.height : 1));
 };
 
 /**

@@ -101,7 +101,7 @@ closurekitchen.ConsolePane.prototype.clear = function() {
  * @param {goog.math.Size} size The size of the pane.
  */
 closurekitchen.ConsolePane.prototype.resize = function(size) {
-  goog.style.setSize(this.getElement(), size.width - 2, size.height - 2);
+  goog.style.setSize(this.getElement(), Math.max(size.width - 2, 1), Math.max(size.height - 2, 1));
 };
 
 /**

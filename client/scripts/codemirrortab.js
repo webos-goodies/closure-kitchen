@@ -24,9 +24,7 @@ closurekitchen.CodeMirrorTab = function(language, caption, code, opt_domHelper) 
   goog.base(this, caption, opt_domHelper);
 
   this.config_ = {
-	'path':            'files/codemirror/',
 	'parserfile':      [],
-	'stylesheet':      'files/codemirror/codemirror.css',
 	'height':          '100%',
 	'lineNumbers':     true,
 	'autoMatchParens': true,
@@ -35,14 +33,42 @@ closurekitchen.CodeMirrorTab = function(language, caption, code, opt_domHelper) 
 	'saveFunction':    goog.bind(this.onSave_, this)
   };
   if(language == closurekitchen.CodeMirrorTab.Language.JAVASCRIPT) {
-	this.config_['basefiles'] = 'javascript.js';
+	if(closurekitchen.CodeMirrorTab.LOCAL_MODE) {
+	  this.config_['path']       = 'codemirror/js/';
+	  this.config_['parserfile'] = ["tokenizejavascript.js", "parsejavascript.js"];
+	  this.config_['stylesheet'] = 'codemirror/css/jscolors.css';
+	} else {
+	  this.config_['path']       = 'files/codemirror/';
+	  this.config_['stylesheet'] = 'files/codemirror/codemirror.css';
+	  this.config_['basefiles']  = 'javascript.js';
+	}
   } else if(language == closurekitchen.CodeMirrorTab.Language.HTML) {
-	this.config_['basefiles'] = 'html.js';
+	if(closurekitchen.CodeMirrorTab.LOCAL_MODE) {
+	  this.config_['path']       = 'codemirror/js/';
+	  this.config_['parserfile'] = ["parsexml.js", "parsecss.js", "tokenizejavascript.js",
+									"parsejavascript.js", "parsehtmlmixed.js"];
+	  this.config_['stylesheet'] = ['codemirror/css/xmlcolors.css',
+									'codemirror/css/jscolors.css',
+									'codemirror/css/csscolors.css'];
+	} else {
+	  this.config_['path']       = 'files/codemirror/';
+	  this.config_['stylesheet'] = 'files/codemirror/codemirror.css';
+	  this.config_['basefiles']  = 'html.js';
+	}
   } else {
-	goog.fail('Please specify a member of closurekitchen.CodeMirrorTab.Language as the language argument.');
+	goog.fail('Please specify one of closurekitchen.CodeMirrorTab.Language member' +
+			  ' as the language argument.');
   }
 };
 goog.inherits(closurekitchen.CodeMirrorTab, closurekitchen.AbstractEditorTab);
+
+/**
+ * Use server or not.
+ * @type {boolean}
+ * @const
+ * @private
+ */
+closurekitchen.CodeMirrorTab.LOCAL_MODE = location.protocol == 'file:'
 
 /**
  * Programming language identifiers.

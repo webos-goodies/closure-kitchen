@@ -287,9 +287,9 @@ closurekitchen.TreePane.prototype.deleteProject = function(project) {
  * @param {goog.math.Size} size The size of the pane.
  */
 closurekitchen.TreePane.prototype.resize = function(size) {
-  size         = new goog.math.Size(size.width - 2, size.height - 2);
-  size.height -= goog.style.getBorderBoxSize(this.bookEl_).height;
-  goog.style.setSize(this.treeEl_, size);
+  var width  = Math.max(size.width - 2, 1);
+  var height = Math.max(size.height - 2 - goog.style.getBorderBoxSize(this.bookEl_).height, 1);
+  goog.style.setSize(this.treeEl_, width, height);
 };
 
 /**

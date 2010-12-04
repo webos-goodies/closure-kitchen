@@ -13,6 +13,9 @@ CLOSUREBUILDER  = File.join(CLOSURE_LIB_DIR, 'closure/bin/build/closurebuilder.p
 DEPS_FILE       = 'deps.js'
 SCRIPT_DIR      = 'scripts'
 STATIC_DIR      = 'files'
+CODEMIRROR_DIR  = 'codemirror'
+CODEMIRROR_JS   = ['util.js','stringstream.js','select.js','undo.js','editor.js','tokenize.js']
+CODEMIRROR_CSS  = ['xmlcolors.css', 'jscolors.css',	'csscolors.css']
 EXTERNS         = ['externs/codemirror.js']
 
 SERVER_DIR      = File.expand_path('../server');
@@ -46,18 +49,13 @@ class JavaScriptOptimizer
     @optimize        = config[:optimize]
   end
 
-  def compress_js(*paths)
+  def optimize(*paths)
     code = paths.map{|path| IO.read(path) }.join("\n")
-    exec([@java, '-jar', @yuicompressor, '--type', 'js'], code) if @optimize
+    code = exec([@java, '-jar', @yuicompressor, '--type', 'js'], code) if @optimize
+    code
   end
 
-  def build_closure_opts(opts)
-    opts.map do |key, values|
-      [*values].map{|v| "#{key}=#{v}" }
-    end
-  end
-
-  def compile_js(compiler_opts={}, *paths)
+  def compile(compiler_opts={}, *paths)
     if @optimize
       opts = build_closure_opts(@closureopts.merge(compiler_opts))
       code = exec([@java, '-jar', @closurecompiler, opts,
@@ -81,6 +79,88 @@ class JavaScriptOptimizer
       code = exec([cmd, '-o', 'script'])
     end
     code
+  end
+
+  private
+
+  def build_closure_opts(opts)
+    opts.map do |key, values|
+      [*values].map{|v| "#{key}=#{v}" }
+    end
+  end
+
+  def exec(cmd, stdin = '')
+    stdout = ''
+    IO.popen([*cmd].flatten.map{|s| '"'+s+'"'}.join(' '), 'r+') do |pipe|
+      pipe.write(stdin)
+      pipe.close_write
+      stdout = pipe.read
+    end
+    stdout
+  end
+end
+
+class CssOptimizer
+  def initialize(config = {})
+    @java          = config[:java]            || 'java'
+    @yuicompressor = config[:yuicompressor]   || 'yuicompressor.jar'
+    @css_url_map   = config[:css_url_map]     || []
+    @optimize      = config[:optimize]
+  end
+
+  def optimize(*paths)
+    css = paths.map{|path| IO.read(path) }.join("\n")
+    css = map_url(css)       unless @css_url_map.empty?
+    css = yuicompressor(css) if @optimize
+    css
+  end
+
+  def expand(*paths)
+    css = paths.map{|path| expand_import(path) }.join("\n")
+    css = map_url(css)       unless @css_url_map.empty?
+    css = yuicompressor(css) if @optimize
+    css
+  end
+
+  private
+
+  def remove_comments(css)
+    css.gsub(/\/\*.*?\*\//mu, '')
+  end
+
+  def expand_import(path)
+    dir = File.expand_path(File.dirname(path))
+    css = IO.read(path)
+    css = remove_comments(css)
+    css = css.gsub(/^@import(?:\s+url\()?\s*[\"\']?([^\"\'\)]+)[\"\']?\s*\)?([^;]*);/u) do
+      text, url, media = $0, $1.strip, $2.strip
+      if /^(?:https?:\/)\//u === url
+        text
+      else
+        sub_css = expand_import(File.join(dir, url))
+        unless media.empty?
+          sub_css = "@media #{media} {\n#{sub_css}\n}\n"
+        end
+        sub_css
+      end
+    end
+  end
+
+  def map_url(css)
+    css.gsub(/(\s)url\(\s*[\"\']?([^\"\'\)]+)[\"\']?\s*\)/u) do
+      space, url = $1, $2.strip
+      @css_url_map.each do |pattern, replace|
+        if pattern === url
+          url.gsub!(pattern, replace)
+          break
+        end
+      end
+      "#{space}url(\"#{url}\")"
+    end
+  end
+
+  def yuicompressor(css)
+    exec([@java, '-jar', @yuicompressor, '--type', 'css'], css)
   end
 
   def exec(cmd, stdin = '')
@@ -115,7 +195,8 @@ class HtmlOptimizer
       @pre_tag_regex = /<(#{pre_tag})[\s>].*?<\/\1\s*>/mui
     end
 
-    @jsoptimizer = JavaScriptOptimizer.new(config)
+    @jsoptimizer  = JavaScriptOptimizer.new(config)
+    @cssoptimizer = CssOptimizer.new(config)
   end
 
   def render_str(str)
@@ -136,38 +217,12 @@ class HtmlOptimizer
     IO.read(path)
   end
 
-  def include_css(path)
-    dir = File.expand_path(File.dirname(path))
-    css = IO.read(path)
-    css = css.gsub(/\/\*.*?\*\//mu, '')
-    css = css.gsub(/^@import(?:\s+url\()?\s*[\"\']?([^\"\'\)]+)[\"\']?\s*\)?([^;]*);/u) do
-      text, url, media = $0, $1.strip, $2.strip
-      if /^(?:https?:\/)\//u === url
-        text
-      else
-        sub_css = include_css(File.join(dir, url))
-        unless media.empty?
-          sub_css = "@media #{media} {\n#{sub_css}\n}\n"
-        end
-        sub_css
-      end
-    end
-    css = css.gsub(/(\s)url\(\s*[\"\']?([^\"\'\)]+)[\"\']?\s*\)/u) do
-      space, url = $1, $2.strip
-      @css_url_map.each do |pattern, replace|
-        if pattern === url
-          url.gsub!(pattern, replace)
-          break
-        end
-      end
-      "#{space}url(\"#{url}\")"
-    end
+  def expand_css(*paths)
+    @cssoptimizer.expand(*paths)
   end
 
   def compress_css(*paths)
-    code = paths.map{|path| include_css(path) }.join("\n")
-    code = exec([@java, '-jar', @yuicompressor, '--type', 'css'], code) if @optimize
-    code
+    @cssoptimizer.optimize(*paths)
   end
 
   def escape_js(str)
@@ -179,11 +234,11 @@ class HtmlOptimizer
   end
 
   def compress_js(*paths)
-    escape_js(@jsoptimizer.compress_js(*paths))
+    escape_js(@jsoptimizer.optimize(*paths))
   end
 
   def compile_js(compiler_opts={}, *paths)
-    escape_js(@jsoptimizer.compile_js(compiler_opts, *paths))
+    escape_js(@jsoptimizer.compile(compiler_opts, *paths))
   end
 
   def compile_closure_app(namespace, compiler_opts=nil, *paths)
@@ -237,7 +292,7 @@ task :deps do
       "--output_file=#{DEPS_FILE}"].flatten.join(' ')
 end
 
-task :build => [:index, :files, :styles, :script] do
+task :build => [:index, :files, :script, :closurefiles] do
 end
 
 task :index do |t, args|
@@ -271,20 +326,45 @@ task :files do
   copy_dir(STATIC_DIR, File.join(SERVER_DIR, STATIC_DIR))
 end
 
-task :styles do
-  ['closure/goog/css', 'closure/goog/images'].each do |dirname|
-    copy_dir(File.join(CLOSURE_LIB_DIR, dirname),
-             File.join(SERVER_DIR, 'closure-library', dirname))
-  end
-end
-
 task :script do |t, args|
-  jscode          = IO.read('files/codemirror/codemirror.js') + "\n";
   opts            = OPTIMIZE_OPTIONS.dup
   opts[:optimize] = args['optimize'] != 'no'
   conv            = JavaScriptOptimizer.new(opts)
+  jscode          = conv.optimize(File.join(CODEMIRROR_DIR, 'js/codemirror.js')) + "\n";
   jscode         += conv.compile_closure_app('closurekitchen.App', nil, SCRIPT_DIR)
   File.open(File.join(SERVER_DIR, STATIC_DIR, 'script.js'), 'w') do |file|
     file << jscode
+  end
+
+  mkdir_p(File.join(SERVER_DIR, STATIC_DIR, 'codemirror'))
+
+  jsfiles = (CODEMIRROR_JS + ['tokenizejavascript.js', 'parsejavascript.js']).map do |fname|
+    File.join(CODEMIRROR_DIR, 'js', fname)
+  end
+  jscode = conv.optimize(*jsfiles)
+  File.open(File.join(SERVER_DIR, STATIC_DIR, 'codemirror/javascript.js'), 'w') do |file|
+    file << jscode
+  end
+
+  jsfiles = (CODEMIRROR_JS + ['parsexml.js', 'parsecss.js', 'tokenizejavascript.js',
+                              'parsejavascript.js', 'parsehtmlmixed.js']).map do |fname|
+    File.join(CODEMIRROR_DIR, 'js', fname)
+  end
+  jscode = conv.optimize(*jsfiles)
+  File.open(File.join(SERVER_DIR, STATIC_DIR, 'codemirror/html.js'), 'w') do |file|
+    file << jscode
+  end
+
+  cssfiles = CODEMIRROR_CSS.map {|fname| File.join(CODEMIRROR_DIR, 'css', fname) }
+  csscode  = CssOptimizer.new(opts).optimize(*cssfiles)
+  File.open(File.join(SERVER_DIR, STATIC_DIR, 'codemirror/codemirror.css'), 'w') do |file|
+    file << csscode
+  end
+end
+
+task :closurefiles do
+  ['closure/goog/css', 'closure/goog/images'].each do |dirname|
+    copy_dir(File.join(CLOSURE_LIB_DIR, dirname),
+             File.join(SERVER_DIR, 'closure-library', dirname))
   end
 end
