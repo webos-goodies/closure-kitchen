@@ -2,6 +2,7 @@ goog.provide('closurekitchen.StatusBundle');
 goog.require('goog.object');
 goog.require('goog.ui.Component');
 goog.require('goog.ui.Control');
+goog.require('closurekitchen.i18n');
 goog.require('closurekitchen.ActionID');
 
 goog.scope(function() {

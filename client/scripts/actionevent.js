@@ -2,6 +2,7 @@ goog.provide('closurekitchen.ActionEvent');
 goog.require('goog.events');
 goog.require('goog.events.Event');
 goog.require('goog.events.EventTarget');
+goog.require('closurekitchen.i18n');
 
 /**
  * An event class for UI actions

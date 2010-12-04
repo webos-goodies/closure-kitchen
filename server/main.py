@@ -188,7 +188,7 @@ class BaseHandler(webapp.RequestHandler):
 
 class TopPageHandler(BaseHandler):
   SANITIZE_PROJECTID_RE = re.compile(r'[^0-9A-Za-z_]')
-  MEMCACHE_NS           = 'sampleindex'
+  MEMCACHE_PREFIX       = 's_'
 
   def get(self):
     user      = users.get_current_user()
@@ -231,10 +231,10 @@ class TopPageHandler(BaseHandler):
       return 'guest'
 
   def fetch_samples(self, ck_pid):
-    cache_key = 'index'
+    cache_key = self.__class__.MEMCACHE_PREFIX + 'index'
     if ck_pid and ck_pid[0] == Project.PREFIX_PUBLIC:
-      cache_key = ck_pid
-    cache = memcache.get(cache_key, self.__class__.MEMCACHE_NS)
+      cache_key = self.__class__.MEMCACHE_PREFIX + ck_pid
+    cache = memcache.get(cache_key)
     if cache is not None:
       return cache
     logging.info('Fetch all public projects.')
@@ -248,12 +248,12 @@ class TopPageHandler(BaseHandler):
         entry['h'] = project.htmlcode
       result[project_id] = entry
     result = simplejson.dumps(result)
-    memcache.set(cache_key, result, 60*60*24, namespace=self.__class__.MEMCACHE_NS)
+    memcache.set(cache_key, result, 60*60*24)
     return result
 
 
 class CompileHandler(BaseHandler):
-  MEMCACHE_NS = 'compile'
+  MEMCACHE_PREFIX = 'c_'
 
   def post(self):
     self.compile_js()
@@ -265,7 +265,7 @@ class CompileHandler(BaseHandler):
     if self.request.headers.get('Content-Type', '').find('text/javascript') < 0:
       raise HttpError(400)
     jsSrc = unicode(self.request.body.strip(), 'utf-8')
-    cache = memcache.get(jsSrc, self.__class__.MEMCACHE_NS)
+    cache = memcache.get(self.__class__.MEMCACHE_PREFIX + jsSrc)
     if cache is not None:
       cache = simplejson.loads(cache)
     else:
@@ -282,7 +282,7 @@ class CompileHandler(BaseHandler):
           'src': jsSrc,
           'compiledCode': '',
           'errors': [{'lineno': 0, 'error': 'Compilation request is failed.'}] }
-      memcache.set(jsSrc, simplejson.dumps(cache), namespace=self.__class__.MEMCACHE_NS)
+      memcache.set(self.__class__.MEMCACHE_PREFIX + jsSrc, simplejson.dumps(cache))
     del cache['src']
     self.response.headers['Content-Type'] = 'application/json'
     self.response.out.write(simplejson.dumps(cache))

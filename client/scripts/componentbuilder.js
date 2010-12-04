@@ -4,6 +4,7 @@ goog.require('goog.dom.DomHelper');
 goog.require('goog.ui.ToolbarButton');
 goog.require('goog.ui.MenuItem');
 goog.require('goog.ui.MenuItemRenderer');
+goog.require('closurekitchen.i18n');
 goog.require('closurekitchen.ActionID');
 goog.require('closurekitchen.ActionType');
 goog.require('closurekitchen.ActionMetaData');

@@ -15,6 +15,7 @@ goog.require('goog.ui.KeyboardShortcutHandler');
 goog.require('goog.ui.Dialog');
 goog.require('goog.debug.Logger');
 goog.require('goog.debug.Console');
+goog.require('closurekitchen.i18n');
 goog.require('closurekitchen.ActionID');
 goog.require('closurekitchen.ActionEvent');
 goog.require('closurekitchen.StatusBundle');
@@ -121,7 +122,7 @@ closurekitchen.App = function() {
 
   if(!this.user_.isUser()) {
 	var dialog = new goog.ui.Dialog();
-	dialog.setTitle(goog.getMsg('ご利用上の注意'));
+	dialog.setTitle(goog.getMsg('Attention'));
 	dialog.setButtonSet(goog.ui.Dialog.ButtonSet.OK);
 	goog.dom.appendChild(dialog.getContentElement(), goog.dom.getElement('caution-dialog'));
 	dialog.setVisible(true);
@@ -341,7 +342,7 @@ closurekitchen.App.prototype.openProjectFailed_ = function(project) {
 	this.saveProjectLocally_(this.currentProject_);
 	closurekitchen.ConsolePane.addLog(
 	  goog.debug.Logger.Level.SEVERE,
-	  goog.getMsg('Failed to load "' + (project.getName()||'') + '"'),
+	  goog.getMsg('Failed to load "{$name}"', { 'name': project.getName()||'' }),
 	  'error');
   }
 };

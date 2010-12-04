@@ -3,6 +3,7 @@ goog.require('goog.style');
 goog.require('goog.ui.Component');
 goog.require('goog.ui.PopupMenu');
 goog.require('goog.debug.DivConsole');
+goog.require('closurekitchen.i18n');
 goog.require('closurekitchen.ActionID');
 goog.require('closurekitchen.ActionEvent');
 goog.require('closurekitchen.ComponentBuilder');

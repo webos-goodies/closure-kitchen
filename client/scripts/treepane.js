@@ -8,6 +8,7 @@ goog.require('goog.ui.tree.TreeNode');
 goog.require('goog.ui.PopupMenu');
 goog.require('goog.ui.MenuSeparator');
 goog.require('goog.debug.Logger');
+goog.require('closurekitchen.i18n');
 goog.require('closurekitchen.ActionID');
 goog.require('closurekitchen.ActionEvent');
 goog.require('closurekitchen.ComponentBuilder');

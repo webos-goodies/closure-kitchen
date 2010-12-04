@@ -1,6 +1,7 @@
 goog.provide('closurekitchen.CodeMirrorTab');
 goog.require('goog.asserts');
 goog.require('goog.debug.Logger');
+goog.require('closurekitchen.i18n');
 goog.require('closurekitchen.ActionID');
 goog.require('closurekitchen.ActionEvent');
 goog.require('closurekitchen.StatusBundle');

@@ -1,5 +1,6 @@
 goog.provide('closurekitchen.PopupMenu');
 goog.require('goog.ui.PopupMenu');
+goog.require('closurekitchen.i18n');
 
 /**
  * A PopupMenu class that supports ActionEvent.

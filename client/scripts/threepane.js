@@ -2,6 +2,7 @@ goog.provide('closurekitchen.ThreePane');
 goog.require('goog.dom.DomHelper');
 goog.require('goog.style');
 goog.require('goog.ui.SplitPane');
+goog.require('closurekitchen.i18n');
 
 /**
  * 3 pane layout component.

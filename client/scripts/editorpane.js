@@ -6,6 +6,7 @@ goog.require('goog.ui.Tab');
 goog.require('goog.ui.TabBar');
 goog.require('goog.ui.Toolbar');
 goog.require('goog.ui.ToolbarSeparator');
+goog.require('closurekitchen.i18n');
 goog.require('closurekitchen.ActionID');
 goog.require('closurekitchen.ActionEvent');
 goog.require('closurekitchen.User');

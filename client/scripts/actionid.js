@@ -1,6 +1,7 @@
 goog.provide('closurekitchen.ActionID');
 goog.provide('closurekitchen.ActionType');
 goog.provide('closurekitchen.ActionMetaData');
+goog.require('closurekitchen.i18n');
 
 /**
  * IDs for user actions.

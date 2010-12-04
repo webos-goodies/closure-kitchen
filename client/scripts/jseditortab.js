@@ -1,4 +1,5 @@
 goog.provide('closurekitchen.JsEditorTab');
+goog.require('closurekitchen.i18n');
 goog.require('closurekitchen.CodeMirrorTab');
 
 /**
@@ -10,6 +11,6 @@ goog.require('closurekitchen.CodeMirrorTab');
  */
 closurekitchen.JsEditorTab = function(code, opt_domHelper) {
   goog.base(this, closurekitchen.CodeMirrorTab.Language.JAVASCRIPT,
-			'JavaScript', code, opt_domHelper);
+			goog.getMsg('JavaScript'), code, opt_domHelper);
 };
 goog.inherits(closurekitchen.JsEditorTab, closurekitchen.CodeMirrorTab);

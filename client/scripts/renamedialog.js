@@ -2,6 +2,7 @@ goog.provide('closurekitchen.RenameDialog');
 goog.require('goog.dom.DomHelper');
 goog.require('goog.ui.Prompt');
 goog.require('goog.debug.Logger');
+goog.require('closurekitchen.i18n');
 goog.require('closurekitchen.Project');
 
 goog.scope(function() {

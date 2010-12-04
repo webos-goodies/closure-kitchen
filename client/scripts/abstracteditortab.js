@@ -2,6 +2,7 @@ goog.provide('closurekitchen.AbstractEditorTab');
 goog.require('goog.string');
 goog.require('goog.style');
 goog.require('goog.ui.Component');
+goog.require('closurekitchen.i18n');
 
 /**
  * An abstract tab content of the editor pane.

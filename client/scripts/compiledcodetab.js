@@ -1,6 +1,7 @@
 goog.provide('closurekitchen.CompiledCodeTab');
 goog.require('goog.string');
 goog.require('goog.dom.DomHelper');
+goog.require('closurekitchen.i18n');
 goog.require('closurekitchen.AbstractEditorTab');
 
 /**
@@ -10,7 +11,7 @@ goog.require('closurekitchen.AbstractEditorTab');
  * @param {goog.dom.domHelper=} opt_domHelper The goog.dom.DomHelper instance.
  */
 closurekitchen.CompiledCodeTab = function(opt_domHelper) {
-  goog.base(this, 'Compiled Code', opt_domHelper);
+  goog.base(this, goog.getMsg('Compiled Code'), opt_domHelper);
 };
 goog.inherits(closurekitchen.CompiledCodeTab, closurekitchen.AbstractEditorTab);
 

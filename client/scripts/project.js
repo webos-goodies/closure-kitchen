@@ -9,6 +9,7 @@ goog.require('goog.Uri');
 goog.require('goog.events.EventTarget');
 goog.require('goog.net.XhrManager');
 goog.require('goog.debug.Logger');
+goog.require('closurekitchen.i18n');
 
 /**
  * A model class for a project.

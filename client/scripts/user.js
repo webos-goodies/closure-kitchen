@@ -1,4 +1,5 @@
 goog.provide('closurekitchen.User');
+goog.require('closurekitchen.i18n');
 
 /**
  * User class.
