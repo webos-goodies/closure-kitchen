@@ -420,11 +420,17 @@ class PublishHandler(BaseHandler):
     self.response.out.write('while(1);{}')
 
 
+isDevServer = os.environ['SERVER_SOFTWARE'].startswith('Development')
+if isDevServer:
+  logging.info('Debug mode enabled.')
+else:
+  logging.info('Debug mode disabled.')
+
 application = webapp.WSGIApplication([
     ('/compile',         CompileHandler),
     ('/projects',        ProjectsHandler),
     ('/publish',         PublishHandler),
-    ('(?:/(?:index)?)?', TopPageHandler)], True)
+    ('(?:/(?:index)?)?', TopPageHandler)], isDevServer)
 
 def main():
   util.run_wsgi_app(application)

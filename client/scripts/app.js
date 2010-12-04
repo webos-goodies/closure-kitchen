@@ -499,7 +499,9 @@ closurekitchen.App.prototype.onAction_ = function(e) {
   } else if(actionId == ActionID.RENAME_CURRENT_PROJECT) {
 	this.actionRenameCurrentProject_();
   } else if(actionId == ActionID.PUBLISH_CURRENT_PROJECT) {
-	this.actionPublishCurrentProject();
+	if(confirm(goog.getMsg('Are you sure to publish this project?'))) {
+	  this.actionPublishCurrentProject();
+	}
   } else if(actionId == ActionID.UPDATE_PREVIEW) {
 	this.actionUpdatePreview_();
   } else if(actionId == ActionID.CLEAR_CONSOLE) {
