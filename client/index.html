@@ -44,6 +44,9 @@
   <!--[uncomment]
   <div id="user-info">
 	{% if user_name %}
+	  {% ifequal user_type 'admin' %}
+        <a href="/admin?cmd=flush">キャッシュクリア</a> |
+      {% endifequal %}
       <b>{{user_name|escape}}</b> | <a href="{{logout_url|escape}}">ログアウト</a>
 	{% else %}
       <a href="{{login_url|escape}}">ログイン</a>

@@ -420,6 +420,16 @@ class PublishHandler(BaseHandler):
     self.response.out.write('while(1);{}')
 
 
+class AdminHandler(BaseHandler):
+  def get(self):
+    command = self.request.get('cmd', '')
+    if command == 'flush':
+      memcache.flush_all();
+    else:
+      raise HttpError(404)
+    self.response.headers['Content-Type'] = 'text/plain';
+    self.response.out.write('ok');
+
 isDevServer = os.environ['SERVER_SOFTWARE'].startswith('Development')
 if isDevServer:
   logging.info('Debug mode enabled.')
@@ -430,6 +440,7 @@ application = webapp.WSGIApplication([
     ('/compile',         CompileHandler),
     ('/projects',        ProjectsHandler),
     ('/publish',         PublishHandler),
+    ('/admin',           AdminHandler),
     ('(?:/(?:index)?)?', TopPageHandler)], isDevServer)
 
 def main():
