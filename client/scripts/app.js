@@ -42,7 +42,6 @@ closurekitchen.App = function() {
 
   this.isModified_   = false;
   this.updating_     = false;
-  this.jsCache_      = [];
   this.eventHandler_ = new goog.events.EventHandler(this);
   this.user_         = new User(pageUri.getParameterValue('user') || startupInfo['userType']);
   this.viewportSize_ = new goog.dom.ViewportSizeMonitor();
@@ -157,6 +156,20 @@ closurekitchen.App.StorageKey = {
 };
 
 /**
+ * Additional code to export log records to the console view from the user's code in the preview.
+ * @type {string}
+ * @private
+ */
+closurekitchen.App.AdditionalJsCode_ = [
+  "(function() {",
+  "  function logProxy(r) {",
+  "    window.parent['closurekitchen']['ConsolePane']['addLogRecord']({",
+  "      'level': r.getLevel(), 'msg': r.getMessage(), 'loggerName': r.getLoggerName(), 'time': r.getMillis(),'exception':r.getException(),'exceptionText':r.getExceptionText() });",
+  "  }",
+  "  goog.debug.LogManager.getRoot().addHandler(logProxy);",
+  "})();"].join('\n');
+
+/**
  * This flag is set while updating status.
  * @type {boolean}
  * @private
@@ -183,13 +196,6 @@ closurekitchen.App.prototype.eventHandler_;
  * @private
  */
 closurekitchen.App.prototype.currentProject_;
-
-/**
- * Cache for compiled javascript code.
- * @type {Array.<{src:string, compiled:string}>}
- * @private
- */
-closurekitchen.App.prototype.jsCache_;
 
 /**
  * The root component of the UI component tree.
@@ -672,82 +678,40 @@ closurekitchen.App.prototype.actionPublishCurrentProject = function() {
 closurekitchen.App.prototype.actionUpdatePreview_ = function() {
   this.editorPane_.exportToProject(this.currentProject_);
   this.saveProjectLocally_(this.currentProject_);
-  var jsSrc  = this.currentProject_.getJsCode();
-  var jsCode = this.getCompiledCode_(jsSrc);
-  if(jsCode) {
-	closurekitchen.App.logger_.info('Skip the compile request since the js code is cached.');
-	this.updatePreview_(jsCode, jsSrc, this.currentProject_.getHtmlCode());
-  } else {
-	this.currentProject_.put(
-	  Project.Format.COMPILE, goog.partial(this.onUpdatePreviewCompleted_, jsSrc), this);
-  }
+  this.currentProject_.put(Project.Format.REQUIRES, this.onUpdatePreviewCompleted_, this);
 };
 
 /**
  * This function is called when the project name has changed.
- * @param {string} jsSrc The source javascript code.
  * @param {closurekitchen.Project} project The project.
  * @param {closurekitchen.Project.Request} request The request information.
  * @param {goog.net.XhrIo} xhr A XhrIo instance.
  * @private
  */
-closurekitchen.App.prototype.onUpdatePreviewCompleted_ = function(jsSrc, project, request, xhr) {
-  var body = xhr.getResponseJson();
-  goog.array.forEach(
-	['warnings', 'errors', 'serverErrors'], function(l) { body[l] = body[l]||[] }, this);
-  goog.array.forEach(body['warnings'], function(record) {
-	var msg = goog.string.subs('line %s : %s', record['lineno']||0, record['warning']||'');
-	closurekitchen.ConsolePane.addLog(goog.debug.Logger.Level.WARNING, msg, 'warning');
+closurekitchen.App.prototype.onUpdatePreviewCompleted_ = function(project, request, xhr) {
+  var body = xhr.getResponseJson('while(1);');
+  goog.array.forEach(body['errors'] || [], function(msg) {
+	closurekitchen.ConsolePane.addLog(goog.debug.Logger.Level.SEVERE, msg, 'goog.require');
   }, this);
-  goog.array.forEach(body['errors'], function(record) {
-	var msg = goog.string.subs('line %s : %s', record['lineno']||0, record['error']||'');
-	closurekitchen.ConsolePane.addLog(goog.debug.Logger.Level.SEVERE, msg, 'error');
-  }, this);
-  goog.array.forEach(body['serverErrors'], function(record) {
-	closurekitchen.ConsolePane.addLog(
-	  goog.debug.Logger.Level.SEVERE, record['error']||'', 'server error');
-  }, this);
-  this.updatePreview_(goog.isString(body['compiledCode']) ? body['compiledCode'] : '',
-					  jsSrc, project.getHtmlCode());
-};
-
-/**
- * Returns the compiled javascript code from cache.
- * @param {string} jsSrc The javascript code to be compiled.
- * @return {string|null} The compiled javascript code. If jsSrc is not cached then null.
- * @private
- */
-closurekitchen.App.prototype.getCompiledCode_ = function(jsSrc) {
-  jsSrc = goog.string.canonicalizeNewlines(goog.string.trim(jsSrc));
-  var record = goog.array.find(this.jsCache_, function(cache) {
-	return cache.src == jsSrc;
-  }, this);
-  return record && record.compiled;
+  this.updatePreview_(goog.isString(body['code']) ? body['code'] : '',
+					  project.getJsCode(), project.getHtmlCode());
 };
 
 /**
  * Update preview.
+ * @param {string} requires Required closure library modules.
  * @param {string} jsCode Compiled javascript code.
- * @param {string} jsSrc The source of the javascript code.
  * @param {string} htmlCode HTML code.
  * @private
  */
-closurekitchen.App.prototype.updatePreview_ = function(jsCode, jsSrc, htmlCode) {
-  jsSrc = goog.string.canonicalizeNewlines(goog.string.trim(jsSrc));
-  var index = goog.array.findIndex(this.jsCache_, function(cache) {
-	return cache.src == jsSrc;
-  }, this);
-  if(index >= 0) {
-	closurekitchen.App.logger_.info('Update the existing compile cache.');
-	goog.array.removeAt(this.jsCache_, index);
-  } else if(this.jsCache_.length >= 10) {
-	closurekitchen.App.logger_.info('Remove the expired compile cache.');
-	this.jsCache_.shift();
-  }
-  this.jsCache_.push({ src: jsSrc, compiled: jsCode});
-  var jsTag = ('<script type="text/javascript">' +
-			   jsCode.replace(/<\/(script)/i, '<\\\\/\1') + '</script>');
-  htmlCode = htmlCode.replace(/\{\{\s*script\s*\}\}/i, function() { return jsTag; });
+closurekitchen.App.prototype.updatePreview_ = function(requires, jsCode, htmlCode) {
+  requires = requires + "\n" + closurekitchen.App.AdditionalJsCode_;
+  var jsTags = [
+	'<script type="text/javascript">',
+	requires.replace(/<\/(script)/ig, '<\\\\/\1') + '</script>',
+	'<script type="text/javascript">',
+	jsCode.replace(/<\/(script)/ig, '<\\\\/\1') + '</script>'].join('');
+  htmlCode = htmlCode.replace(/\{\{\s*script\s*\}\}/i, function() { return jsTags; });
   this.editorPane_.updatePreview(htmlCode, jsCode);
 };
 

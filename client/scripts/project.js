@@ -46,10 +46,11 @@ closurekitchen.Project.Type = {
  * @enum {string}
  */
 closurekitchen.Project.Format = {
-  ALL:     'ALL',
-  RENAME:  'RENAME',
-  PUBLISH: 'PUBLISH',
-  COMPILE: 'COMPILE'
+  ALL:      'ALL',
+  RENAME:   'RENAME',
+  PUBLISH:  'PUBLISH',
+  COMPILE:  'COMPILE',
+  REQUIRES: 'REQUIRES'
 };
 
 /**
@@ -333,7 +334,9 @@ closurekitchen.Project.prototype.getContentType = function(format) {
  * @return {string} The url.
  */
 closurekitchen.Project.prototype.getRequestUrl = function(format) {
-  if(format == closurekitchen.Project.Format.COMPILE)
+  if(format == closurekitchen.Project.Format.REQUIRES)
+	return '/js';
+  else if(format == closurekitchen.Project.Format.COMPILE)
 	return '/compile';
   else if(format == closurekitchen.Project.Format.PUBLISH)
 	return '/publish';
@@ -355,6 +358,12 @@ closurekitchen.Project.prototype.serialize = function(format) {
 	obj = { 'n': this.name_, 'j': this.jscode_, 'h': this.htmlcode_ };
   } else if(format == closurekitchen.Project.Format.COMPILE) {
 	return goog.isString(this.jscode_) ? this.jscode_ : '';
+  } else if(format == closurekitchen.Project.Format.REQUIRES) {
+	var requires = [];
+	(this.jscode_ || '').replace(
+		/(?:^|;)\s*goog\s*\.\s*require\s*\([\'\"]([^\'\"]+)[\'\"]\)/mg,
+	  function(m, n) { requires.push(n); return ''; });
+	obj = { 'requires': requires };
   } else if(format == closurekitchen.Project.Format.RENAME) {
 	if(this.isNew())
 	  obj = { 'n': this.name_, 'j': this.jscode_, 'h': this.htmlcode_ };
@@ -372,7 +381,8 @@ closurekitchen.Project.prototype.serialize = function(format) {
  * @param {closurekitchen.Project.Format} opt_format Format of the request to obtain the data.
  */
 closurekitchen.Project.prototype.load = function(data, opt_format) {
-  if(opt_format == closurekitchen.Project.Format.COMPILE)
+  if(opt_format == closurekitchen.Project.Format.REQUIRES ||
+	 opt_format == closurekitchen.Project.Format.COMPILE)
 	return;
 
   var xssPrefix = 'while(1);';

@@ -17,8 +17,10 @@ from google.appengine.ext.webapp import util
 from google.appengine.ext.webapp import template
 from django.utils import simplejson
 
-logging.getLogger().setLevel(logging.DEBUG)
+# Closure Library の JavaScript ファイルの依存関係を読み込む
+execfile('deps.py')
 
+logging.getLogger().setLevel(logging.DEBUG)
 
 # ログ出力用のコード
 logging_code = urllib.urlencode({ 'js_code': '''
@@ -43,6 +45,46 @@ class HttpError(RuntimeError):
 
   def __str__(self):
     return "HTTP ERROR : STATUS %d" % (self.code_)
+
+
+# Closure Library の JavaScript ファイルの依存関係を展開する
+class ClosureBuilder(object):
+  def build(self, requires):
+    self.read    = {}
+    self.jsfiles = []
+    self.errors  = []
+    self.load_file('closurejs/closure/goog/base.js')
+    self.load('goog.debug.Logger')
+    self.load('goog.debug.LogManager')
+    for cname in requires:
+      self.load(cname)
+
+  def load(self, cname):
+    if cname in self.read:
+      return []
+    self.read[cname] = True
+    if cname not in closure_classes:
+      self.errors.append(cname + ' is not exist.')
+      return
+    fname              = closure_classes[cname]
+    provides, requires = closure_files[fname]
+    for c in provides:
+      self.read[c] = True
+    for c in requires:
+      self.load(c)
+    self.load_file(fname)
+
+  def load_file(self, fname):
+    try:
+      self.jsfiles.append(open(fname).read())
+    except:
+      self.errors.append('Failed to load ' + fname)
+
+  def get_code(self):
+    return "\n".join(self.jsfiles)
+
+  def get_errors(self):
+    return self.errors
 
 
 class UserData(db.Model):
@@ -420,6 +462,25 @@ class PublishHandler(BaseHandler):
     self.response.out.write('while(1);{}')
 
 
+class JsHandler(BaseHandler):
+  def post(self):
+    self.process()
+
+  def put(self):
+    self.process()
+
+  def process(self):
+    req_body = simplejson.loads(self.request.body)
+    self.validate_request(req_body, ('requires',))
+    builder = ClosureBuilder()
+    builder.build(req_body['requires'])
+    data = {
+      'code':   builder.get_code(),
+      'errors': builder.get_errors() }
+    self.response.headers['Content-Type'] = 'application/json'
+    self.response.out.write('while(1);' + simplejson.dumps(data))
+
+
 class AdminHandler(BaseHandler):
   def get(self):
     command = self.request.get('cmd', '')
@@ -440,6 +501,7 @@ application = webapp.WSGIApplication([
     ('/compile',         CompileHandler),
     ('/projects',        ProjectsHandler),
     ('/publish',         PublishHandler),
+    ('/js',              JsHandler),
     ('/admin',           AdminHandler),
     ('(?:/(?:index)?)?', TopPageHandler)], isDevServer)
 

@@ -1,5 +1,6 @@
 # -*- mode:ruby -*-
 
+require 'rake/clean'
 require 'erb'
 
 PYTHON          = 'python'
@@ -18,7 +19,20 @@ CODEMIRROR_JS   = ['util.js','stringstream.js','select.js','undo.js','editor.js'
 CODEMIRROR_CSS  = ['xmlcolors.css', 'jscolors.css',	'csscolors.css']
 EXTERNS         = ['externs/codemirror.js']
 
-SERVER_DIR      = File.expand_path('../server');
+SERVER_DIR      = File.expand_path('../server')
+SERVER_JS_DIR   = File.join(SERVER_DIR, 'closurejs')
+SERVER_JS_REGEX = Regexp.escape(SERVER_JS_DIR)
+SERVER_DEPS_PY  = File.join(SERVER_DIR, 'deps.py')
+
+SERVER_JS_SRCS  = FileList[File.join(CLOSURE_LIB_DIR, 'closure/**/*.js'),
+                           File.join(CLOSURE_LIB_DIR, 'third_party/**/*.js')]
+SERVER_JS_SRCS.exclude('**/*_test.js').exclude('**/deps.js')
+SERVER_JS_TRGS  = SERVER_JS_SRCS.gsub(/^#{Regexp.escape(CLOSURE_LIB_DIR)}/u, SERVER_JS_DIR)
+
+CLOBBER.include(File.join(SERVER_DIR, STATIC_DIR))
+CLOBBER.include(File.join(SERVER_DIR, 'closure-library'))
+CLOBBER.include(SERVER_JS_DIR)
+CLOBBER.include(SERVER_DEPS_PY)
 
 OPTIMIZE_OPTIONS = {
   :python          => PYTHON,
@@ -35,6 +49,11 @@ OPTIMIZE_OPTIONS = {
   },
   :css_url_map     => [[/^\.\.\/images\/tree\/(.+)/u, File.join(STATIC_DIR, 'images/\1')]]
 }
+SERVER_JS_OPTS = OPTIMIZE_OPTIONS.merge( {
+  :optimize    => true,
+  :closureopts => { '--compilation_level' => 'SIMPLE_OPTIMIZATIONS' }
+})
+
 
 class JavaScriptOptimizer
   def initialize(config = {})
@@ -286,6 +305,23 @@ class HtmlOptimizer
 
 end
 
+def copy_dir(src, dst)
+  mkdir_p(dst, :verbose => false)
+  dirs  = []
+  files = []
+  Dir.chdir(src) do
+    Dir.glob('**/*') do |fname|
+      (File.directory?(fname) ? dirs : files) << fname
+    end
+  end
+  dirs.each do |dirname|
+    mkdir_p(File.join(dst, dirname), :verbose => false)
+  end
+  files.each do |fname|
+    cp(File.join(src, fname), File.join(dst, fname), :verbose => false)
+  end
+end
+
 task :deps do
   sh ["#{PYTHON} #{DEPSWRITER}",
       "--root_with_prefix='#{SCRIPT_DIR} ../../../#{SCRIPT_DIR}'",
@@ -302,23 +338,6 @@ task :index do |t, args|
   html            = conv.render_file('index.html')
   File.open(File.join(SERVER_DIR, 'index.html'), 'w') do |file|
     file << html
-  end
-end
-
-def copy_dir(src, dst)
-  mkdir_p(dst, :verbose => false)
-  dirs  = []
-  files = []
-  Dir.chdir(src) do
-    Dir.glob('**/*') do |fname|
-      (File.directory?(fname) ? dirs : files) << fname
-    end
-  end
-  dirs.each do |dirname|
-    mkdir_p(File.join(dst, dirname), :verbose => false)
-  end
-  files.each do |fname|
-    cp(File.join(src, fname), File.join(dst, fname), :verbose => false)
   end
 end
 
@@ -366,5 +385,40 @@ task :closurefiles do
   ['closure/goog/css', 'closure/goog/images'].each do |dirname|
     copy_dir(File.join(CLOSURE_LIB_DIR, dirname),
              File.join(SERVER_DIR, 'closure-library', dirname))
+  end
+end
+
+task :closurejs => [SERVER_JS_TRGS, SERVER_DEPS_PY].flatten
+
+rule(/^#{SERVER_JS_REGEX}.*\.js$/u =>
+     [proc {|n| File.join(CLOSURE_LIB_DIR, n.gsub(/^#{SERVER_JS_REGEX}/u, '')) }]) do |t|
+  print "optimizing #{File.basename(t.source)}...\n"
+  mkdir_p(File.dirname(t.name), :verbose => false)
+  jscode = JavaScriptOptimizer.new(SERVER_JS_OPTS).optimize(t.source)
+  File.open(t.name, 'w') {|file| file << jscode }
+end
+
+task :depspy => SERVER_DEPS_PY
+
+file SERVER_DEPS_PY => File.join(CLOSURE_LIB_DIR, 'closure/goog/deps.js') do |t|
+  files   = {}
+  classes = {}
+  pathrex = /^#{Regexp.escape(CLOSURE_LIB_DIR)}\/*/
+  IO.read(t.prerequisites[0]).scan(/goog\.addDependency\(([^\)]+)\)/) do |args|
+    fname, provides, requires = eval('[' + args[0] + ']')
+    fname = File.expand_path(File.join(CLOSURE_LIB_DIR, 'closure/goog', fname)).sub!(pathrex, '')
+    fname = File.join(File.basename(SERVER_JS_DIR), fname)
+    files[fname] = [provides, requires]
+    provides.each{|cname| classes[cname] = fname }
+  end
+  files   = files.map   {|key, value| "\t#{key.inspect}: #{value.inspect}" }
+  classes = classes.map {|key, value| "\t#{key.inspect}: #{value.inspect}" }
+  File.open(t.name, 'w') do |file|
+    file << "closure_files = {\n"
+    file << files.join(",\n")
+    file << " }\n"
+    file << "closure_classes = {\n"
+    file << classes.join(",\n")
+    file << " }\n"
   end
 end
