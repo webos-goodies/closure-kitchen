@@ -49,7 +49,6 @@ closurekitchen.Project.Format = {
   ALL:      'ALL',
   RENAME:   'RENAME',
   PUBLISH:  'PUBLISH',
-  COMPILE:  'COMPILE',
   REQUIRES: 'REQUIRES'
 };
 
@@ -322,10 +321,7 @@ closurekitchen.Project.prototype.duplicateAsPrivate = function() {
  * @return {string} The mime-type.
  */
 closurekitchen.Project.prototype.getContentType = function(format) {
-  if(format != closurekitchen.Project.Format.COMPILE)
-	return 'application/json';
-  else
-	return 'text/javascript';
+  return 'application/json';
 };
 
 /**
@@ -336,8 +332,6 @@ closurekitchen.Project.prototype.getContentType = function(format) {
 closurekitchen.Project.prototype.getRequestUrl = function(format) {
   if(format == closurekitchen.Project.Format.REQUIRES)
 	return '/js';
-  else if(format == closurekitchen.Project.Format.COMPILE)
-	return '/compile';
   else if(format == closurekitchen.Project.Format.PUBLISH)
 	return '/publish';
   else if(this.isNew())
@@ -356,8 +350,6 @@ closurekitchen.Project.prototype.serialize = function(format) {
   if(format == closurekitchen.Project.Format.ALL ||
 	 format == closurekitchen.Project.Format.PUBLISH) {
 	obj = { 'n': this.name_, 'j': this.jscode_, 'h': this.htmlcode_ };
-  } else if(format == closurekitchen.Project.Format.COMPILE) {
-	return goog.isString(this.jscode_) ? this.jscode_ : '';
   } else if(format == closurekitchen.Project.Format.REQUIRES) {
 	var requires = [];
 	(this.jscode_ || '').replace(
@@ -381,8 +373,7 @@ closurekitchen.Project.prototype.serialize = function(format) {
  * @param {closurekitchen.Project.Format} opt_format Format of the request to obtain the data.
  */
 closurekitchen.Project.prototype.load = function(data, opt_format) {
-  if(opt_format == closurekitchen.Project.Format.REQUIRES ||
-	 opt_format == closurekitchen.Project.Format.COMPILE)
+  if(opt_format == closurekitchen.Project.Format.REQUIRES)
 	return;
 
   var xssPrefix = 'while(1);';

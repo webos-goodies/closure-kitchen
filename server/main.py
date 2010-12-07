@@ -22,19 +22,6 @@ execfile('deps.py')
 
 logging.getLogger().setLevel(logging.DEBUG)
 
-# ログ出力用のコード
-logging_code = urllib.urlencode({ 'js_code': '''
-goog.require('goog.debug.Logger');
-goog.require('goog.debug.LogManager');
-(function() {
-  function logProxy(r) {
-    window.parent['closurekitchen']['ConsolePane']['addLogRecord']({
-      'level': r.getLevel(), 'msg': r.getMessage(), 'loggerName': r.getLoggerName(), 'time': r.getMillis(),'exception':r.getException(),'exceptionText':r.getExceptionText() });
-  }
-  goog.debug.LogManager.getRoot().addHandler(logProxy);
-})();
-''' }) + '&'
-
 # リクエストエラーの例外
 class HttpError(RuntimeError):
   def __init__(self, code):
@@ -49,15 +36,36 @@ class HttpError(RuntimeError):
 
 # Closure Library の JavaScript ファイルの依存関係を展開する
 class ClosureBuilder(object):
+  MEMCACHE_PREFIX = 'r_'
+
   def build(self, requires):
-    self.read    = {}
-    self.jsfiles = []
-    self.errors  = []
-    self.load_file('closurejs/closure/goog/base.js')
-    self.load('goog.debug.Logger')
-    self.load('goog.debug.LogManager')
-    for cname in requires:
-      self.load(cname)
+    requires.sort()
+    requires_str = unicode(','.join(requires))
+    cachekey     = self.__class__.MEMCACHE_PREFIX + hex(requires_str.__hash__())
+    cache        = memcache.get(cachekey)
+    if cache is not None:
+      cache = simplejson.loads(cache)
+    else:
+      logging.info('Required modules is not cached.')
+      cache = {}
+    if 'requires' in cache and unicode(cache['requires']) == requires_str:
+      self.jsfiles = [cache['code']]
+      self.errors  = cache['errors']
+    else:
+      logging.info('Build required modules.')
+      self.read    = {}
+      self.jsfiles = ['window.CLOSURE_NO_DEPS = true;']
+      self.errors  = []
+      self.load_file('closurejs/closure/goog/base.js')
+      self.load('goog.debug.Logger')
+      self.load('goog.debug.LogManager')
+      for cname in requires:
+        self.load(cname)
+      cache = {
+        'requires': requires_str,
+        'code':     self.get_code(),
+        'errors':   self.get_errors() }
+      memcache.set(cachekey, simplejson.dumps(cache))
 
   def load(self, cname):
     if cname in self.read:
@@ -498,7 +506,6 @@ else:
   logging.info('Debug mode disabled.')
 
 application = webapp.WSGIApplication([
-    ('/compile',         CompileHandler),
     ('/projects',        ProjectsHandler),
     ('/publish',         PublishHandler),
     ('/js',              JsHandler),
