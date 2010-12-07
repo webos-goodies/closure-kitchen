@@ -351,7 +351,7 @@ closurekitchen.Project.prototype.createRequest = function(method, format, callba
 	body = this.serialize(format);
   }
   if(closurekitchen.Project.LOCAL_MODE) {
-	return new closurekitchen.LocalProject.Request(
+	return new closurekitchen.Project.LocalRequest(
 	  this.getRequestUrl(format), method, body, type, format, callback, error, scope);
   } else {
 	return new closurekitchen.Project.Request(
