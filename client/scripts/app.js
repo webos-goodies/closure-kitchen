@@ -1,6 +1,7 @@
 goog.provide('closurekitchen.App');
 goog.require('goog.string');
 goog.require('goog.Uri');
+goog.require('goog.json');
 goog.require('goog.array');
 goog.require('goog.async.Delay');
 goog.require('goog.dom');
@@ -684,12 +685,15 @@ closurekitchen.App.prototype.actionUpdatePreview_ = function() {
 /**
  * This function is called when the project name has changed.
  * @param {closurekitchen.Project} project The project.
- * @param {closurekitchen.Project.Request} request The request information.
- * @param {goog.net.XhrIo} xhr A XhrIo instance.
+ * @param {string} response The response body.
  * @private
  */
-closurekitchen.App.prototype.onUpdatePreviewCompleted_ = function(project, request, xhr) {
-  var body = xhr.getResponseJson('while(1);');
+closurekitchen.App.prototype.onUpdatePreviewCompleted_ = function(project, response) {
+  var xssPrefix = 'while(1);';
+  if(response.indexOf(xssPrefix) == 0) {
+	response = response.substring(xssPrefix.length);
+  }
+  var body = goog.json.parse(response);
   goog.array.forEach(body['errors'] || [], function(msg) {
 	closurekitchen.ConsolePane.addLog(goog.debug.Logger.Level.SEVERE, msg, 'goog.require');
   }, this);

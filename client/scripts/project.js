@@ -1,5 +1,7 @@
 goog.provide('closurekitchen.Project');
+goog.provide('closurekitchen.Project.AbstractRequest');
 goog.provide('closurekitchen.Project.Request');
+goog.provide('closurekitchen.Project.LocalRequest');
 goog.require('goog.Disposable');
 goog.require('goog.asserts');
 goog.require('goog.array');
@@ -75,71 +77,11 @@ closurekitchen.Project.logger_ = goog.debug.Logger.getLogger('closurekitchen.Pro
 closurekitchen.Project.entities_ = {};
 
 /**
- * XhrManager instance to handle all ajax requests (except preview requests).
- * @type {goog.net.XhrManager}
- * @private
- */
-closurekitchen.Project.xhrManager_ = new goog.net.XhrManager();
-
-/**
- * An id for ajax requests.
- * @type {number}
- * @private
- */
-closurekitchen.Project.nextXhrId_ = 1;
-
-/**
- * Request object map.
- * @type {Object.<number, closurekitchen.Project.Request>}
- * @private
- */
-closurekitchen.Project.requests_ = {};
-
-/**
  * Returns an XhrManager.
  * @return {goog.net.XhrManager} An XhrManager.
  */
 closurekitchen.Project.getXhrManager = function() {
-  return closurekitchen.Project.xhrManager_;
-};
-
-/**
- * Outputs the response to the logger.
- * @param {goog.net.XhrIo} xhr A XhrIo instance.
- * @private
- */
-closurekitchen.Project.logResponse_ = function(xhr) {
-  var isSuccess = xhr.isSuccess();
-  var log = ['Network access is ', isSuccess ? 'succeeded.' : 'failed.'];
-  log.push('\nuri: ', xhr.getLastUri(), '\nstatus: ', xhr.getStatus(), ' ', xhr.getStatusText());
-  if(!xhr.isSuccess()) {
-	log.push('\nlastError: ', xhr.getLastError());
-  }
-  log.push('\nbody:\n', xhr.getResponseText());
-  closurekitchen.Project.logger_.log(
-	isSuccess ? goog.debug.Logger.Level.INFO : goog.debug.Logger.Level.WARNING,
-	log.join(''));
-};
-
-/**
- * Calls the callback function.
- * @param {Function} callback Function to call.
- * @param {Object} scope The this object of callback.
- * @param {Array=} args The arguments passed to callback.
- * @return {*} The return value of callback.
- * @private
- */
-closurekitchen.Project.invokeCallback_ = function(callback, scope, args) {
-  if(callback) {
-	goog.asserts.assertFunction(
-	  callback, 'callback must be a function but %s', goog.typeOf(callback));
-	args = args || [];
-	goog.asserts.assertArray(
-	  args, 'args must be an array but %s', goog.typeOf(args));
-	return callback.apply(scope || goog.global, args || []);
-  } else {
-	return null;
-  }
+  return closurekitchen.Project.Request.getXhrManager();
 };
 
 /**
@@ -225,6 +167,20 @@ closurekitchen.Project.prototype.jscode_ = null;
  */
 closurekitchen.Project.prototype.htmlcode_ = null;
 
+/** @inheritDoc */
+closurekitchen.Project.prototype.disposeInternal = function() {
+  if(!this.isNew()) {
+	closurekitchen.Project.logger_.info('Project ' + this.id_ + 'is removed from index.');
+	goog.object.remove(closurekitchen.Project.entities_, this.id_);
+  }
+  this.type_      = null;
+  this.isDeleted_ = true;
+  this.id_        = null;
+  this.name_      = null;
+  this.jscode_    = null;
+  this.htmlcode_  = null;
+};
+
 /**
  * Returns where the project is private or not.
  * @return {boolean} True if this project is private, false otherwise.
@@ -287,6 +243,14 @@ closurekitchen.Project.prototype.setJsCode = function(jscode) {
  */
 closurekitchen.Project.prototype.setHtmlCode = function(htmlcode) {
   this.htmlcode_ = htmlcode || '';
+};
+
+/**
+ * Makes this project unfetched.
+ */
+closurekitchen.Project.prototype.unfetch = function() {
+  this.jscode_   = null;
+  this.htmlcode_ = null;
 };
 
 /**
@@ -355,6 +319,7 @@ closurekitchen.Project.prototype.serialize = function(format) {
 	(this.jscode_ || '').replace(
 		/(?:^|;)\s*goog\s*\.\s*require\s*\([\'\"]([^\'\"]+)[\'\"]\)/mg,
 	  function(m, n) { requires.push(n); return ''; });
+	requires.sort();
 	obj = { 'requires': requires };
   } else if(format == closurekitchen.Project.Format.RENAME) {
 	if(this.isNew())
@@ -365,6 +330,33 @@ closurekitchen.Project.prototype.serialize = function(format) {
 	goog.asserts.fail('Unknown serialization format.');
   }
   return goog.json.serialize(obj);
+};
+
+/**
+ * Returns an request object.
+ * @param {string} method HTTP method.
+ * @param {closurekitchen.Project.Format} format Request format of this request.
+ * @param {Function} callback Function called when this request is completed.
+ * @param {Function} error Function called when this request is failed.
+ * @param {Object}  scope this object of callback.
+ * @return {closurekitchen.Project.AbstractRequest} A new request object.
+ * @protected
+ */
+closurekitchen.Project.prototype.createRequest = function(method, format, callback, error, scope) {
+  var type = null;
+  var body = null;
+  method   = method.toUpperCase();
+  if(method == 'POST' || method == 'PUT') {
+	type = this.getContentType(format);
+	body = this.serialize(format);
+  }
+  if(closurekitchen.Project.LOCAL_MODE) {
+	return new closurekitchen.LocalProject.Request(
+	  this.getRequestUrl(format), method, body, type, format, callback, error, scope);
+  } else {
+	return new closurekitchen.Project.Request(
+	  this.getRequestUrl(format), method, body, type, format, callback, error, scope);
+  }
 };
 
 /**
@@ -399,22 +391,16 @@ closurekitchen.Project.prototype.load = function(data, opt_format) {
  * @param {Function=} opt_error This function is called when the request is failed.
  */
 closurekitchen.Project.prototype.fetch = function(opt_callback, opt_scope, opt_error) {
-  if(this.isFetched() || closurekitchen.Project.LOCAL_MODE) {
-	closurekitchen.Project.invokeCallback_(opt_callback, opt_scope, [this]);
-	return;
+  var request = this.createRequest(
+	'GET', closurekitchen.Project.Format.ALL, opt_callback, opt_error, opt_scope);
+  if(!this.isFetched()) {
+	request.send(this);
+  } else {
+	request.emulateSuccess(this, '{}');
   }
 
-  var id = closurekitchen.Project.nextXhrId_++;
-  goog.asserts.assert(!closurekitchen.Project.requests_[id], 'Request id is recycled.');
-
-  var request = closurekitchen.Project.xhrManager_.send(
-    id, this.getRequestUrl(closurekitchen.Project.Format.ALL),
-	'GET', null, {}, 0, goog.bind(this.processResponse_, this, id));
-  closurekitchen.Project.requests_[id] = new closurekitchen.Project.Request(
-	request, closurekitchen.Project.Format.ALL, opt_callback, opt_error, opt_scope);
-
-  this.jscode_   = '';
-  this.htmlcode_ = '';
+  this.jscode_   = this.jscode_   || '';
+  this.htmlcode_ = this.htmlcode_ || '';
 };
 
 /**
@@ -424,23 +410,9 @@ closurekitchen.Project.prototype.fetch = function(opt_callback, opt_scope, opt_e
  * @param {Object=} opt_scope The scope of the callback.
  */
 closurekitchen.Project.prototype.put = function(format, opt_callback, opt_scope) {
-  var id = closurekitchen.Project.nextXhrId_++;
-  goog.asserts.assert(!closurekitchen.Project.requests_[id], 'Request id is recycled.');
-
-  if(!closurekitchen.Project.LOCAL_MODE) {
-	var request = closurekitchen.Project.xhrManager_.send(
-	  id, this.getRequestUrl(format), this.isNew() ? 'POST' : 'PUT',
-	  this.serialize(format), { 'Content-Type': this.getContentType(format) },
-	  0, goog.bind(this.processResponse_, this, id));
-
-	closurekitchen.Project.requests_[id] =
-	  new closurekitchen.Project.Request(request, format, opt_callback, null, opt_scope);
-  } else {
-	if(this.isNew() && format != closurekitchen.Project.Format.PUBLISH) {
-	  this.load('{"id":"' + Math.random() + '"}', format);
-	}
-	closurekitchen.Project.invokeCallback_(opt_callback, opt_scope, [this]);
-  }
+  var request = this.createRequest(
+	this.isNew() ? 'POST' : 'PUT', format, opt_callback, null, opt_scope);
+  request.send(this);
 };
 
 /**
@@ -452,162 +424,366 @@ closurekitchen.Project.prototype.del = function(opt_callback, opt_scope) {
   if(this.isDeleted_) {
 	return;
   }
-  if(this.isNew() || closurekitchen.Project.LOCAL_MODE) {
-	closurekitchen.Project.invokeCallback_(opt_callback, opt_scope, [this]);
-	return;
-  }
-
-  var id = closurekitchen.Project.nextXhrId_++;
-  goog.asserts.assert(!closurekitchen.Project.requests_[id], 'Request id is recycled.');
-
-  var request = closurekitchen.Project.xhrManager_.send(
-    id, this.getRequestUrl(closurekitchen.Project.Format.ALL),
-	'DELETE', null, {}, 0, goog.bind(this.processResponse_, this, id));
-  closurekitchen.Project.requests_[id] = new closurekitchen.Project.Request(
-	request, closurekitchen.Project.Format.ALL, opt_callback, null, opt_scope);
   this.isDeleted_ = true;
-};
 
-/**
- * This function is called when the put/post request is completed.
- * @param {number} requestId The request id.
- * @param {goog.events.Event} e A event object generated by XhrIo.
- * @private
- */
-closurekitchen.Project.prototype.processResponse_ = function(requestId, e) {
-  var request = closurekitchen.Project.requests_[requestId];
-  goog.asserts.assert(request, 'Request information is not exist.');
-  goog.object.remove(closurekitchen.Project.requests_, requestId);
-
-  try {
-	var xhr = e.target;
-	closurekitchen.Project.logResponse_(xhr);
-	if(xhr.isSuccess()) {
-	  var method = request.getRequest().getMethod();
-	  if(method == 'GET' || method == 'POST') {
-		this.load(xhr.getResponseText(), request.getFormat());
-	  }
-	  try {
-		request.invokeCallback([this, request, xhr]);
-	  } catch(e) {
-		closurekitchen.Project.logger_.severe(
-		  'The exception is raised in the callback.', e);
-	  }
-	  if(method == 'DELETE') {
-		this.dispose();
-	  }
-	} else {
-	  try {
-		request.invokeErrorCallback([this, request, xhr]);
-	  } catch(e) {
-		closurekitchen.Project.logger_.severe(
-		  'The exception is raised in the error callback.', e);
-	  }
-	  if(request.getRequest().getMethod() == 'GET') {
-		this.jscode_   = null;
-		this.htmlcode_ = null;
-	  }
-	}
-  } finally {
-	request.dispose();
+  var request = this.createRequest(
+	'DELETE', closurekitchen.Project.Format.ALL, opt_callback, null, opt_scope);
+  if(!this.isNew()) {
+	request.send(this);
+  } else {
+	request.emulateSuccess(this);
   }
 };
 
 /**
- * Request information.
- * @param {goog.net.XhrManager.Request} request Request object.
+ * Abstract base class of request information.
+ * @param {string} uri Request uri.
+ * @param {string} method HTTP method.
+ * @param {?string} body Request body, if any.
+ * @param {?string} bodyType The content type of the request body.
  * @param {closurekitchen.Project.Format} format Request format of this request.
- * @param {?Function} callback Function called when this request is completed.
- * @param {?Function} error Function called when this request is failed.
- * @param {?Object}  opt_scope this object of callback.
+ * @param {Function} callback Function called when this request is completed.
+ * @param {Function} error Function called when this request is failed.
+ * @param {Object} scope this object of callback.
  * @constructor
  * @extends {goog.Disposable}
  */
-closurekitchen.Project.Request = function(request, format, callback, error, scope) {
+closurekitchen.Project.AbstractRequest = function(uri, method, body, bodyType,
+												  format, callback, error, scope) {
   goog.base(this);
-  this.request_       = request;
-  this.format_        = format;
-  this.callback_      = callback || goog.nullFunction;
-  this.errorCallback_ = error    || goog.nullFunction;
-  this.scope_         = scope    || null;
+  this.project       = null;
+  this.uri           = uri;
+  this.method        = method.toUpperCase();
+  this.body          = body;
+  this.bodyType      = bodyType;
+  this.format        = format;
+  this.callback      = callback || goog.nullFunction;
+  this.errorCallback = error    || goog.nullFunction;
+  this.scope         = scope    || null;
 };
-goog.inherits(closurekitchen.Project.Request, goog.Disposable);
+goog.inherits(closurekitchen.Project.AbstractRequest, goog.Disposable);
 
 /**
- * Request object.
- * @type {goog.net.XhrManager.Request}
+ * The logger for this class.
+ * @type { goog.debug.Logger }
  * @private
  */
-closurekitchen.Project.Request.prototype.request_;
+closurekitchen.Project.AbstractRequest.logger_ =
+  goog.debug.Logger.getLogger('closurekitchen.Project.AbstractRequest');
+
+/**
+ * The related project.
+ * @type {closurekitchen.Project}
+ * @protected
+ */
+closurekitchen.Project.AbstractRequest.prototype.project;
+
+/**
+ * Request uri.
+ * @type {string}
+ * @protected
+ */
+closurekitchen.Project.AbstractRequest.prototype.uri;
+
+/**
+ * HTTP method.
+ * @type {string}
+ * @protected
+ */
+closurekitchen.Project.AbstractRequest.prototype.method;
+
+/**
+ * Request body.
+ * @type {?string}
+ * @protected
+ */
+closurekitchen.Project.AbstractRequest.prototype.body;
+
+/**
+ * The content type of the request body.
+ * @type {?string}
+ * @protected
+ */
+closurekitchen.Project.AbstractRequest.prototype.bodyType;
 
 /**
  * Request format of this request.
  * @type {closurekitchen.Project.Format}
- * @private
+ * @protected
  */
-closurekitchen.Project.Request.prototype.format_;
+closurekitchen.Project.AbstractRequest.prototype.format;
 
 /**
  * Function called when this request is completed.
  * @type {Function}
- * @private
+ * @protected
  */
-closurekitchen.Project.Request.prototype.callback_;
+closurekitchen.Project.AbstractRequest.prototype.callback;
 
 /**
  * Function called when this request is failed.
  * @type {Function}
- * @private
+ * @protected
  */
-closurekitchen.Project.Request.prototype.errorCallback_;
+closurekitchen.Project.AbstractRequest.prototype.errorCallback;
 
 /**
  * this object of callback.
  * @type {Object}
- * @private
+ * @protected
  */
-closurekitchen.Project.Request.prototype.scope_;
+closurekitchen.Project.AbstractRequest.prototype.scope;
 
 /** @inheritDoc */
-closurekitchen.Project.Request.prototype.disposeInternal = function() {
+closurekitchen.Project.AbstractRequest.prototype.disposeInternal = function() {
   goog.base(this, 'disposeInternal');
-  this.request_       = null;
-  this.format_        = null;
-  this.callback_      = null;
-  this.errorCallback_ = null;
-  this.scope_         = null;
+  this.project       = null;
+  this.uri           = null;
+  this.method        = null;
+  this.body          = null;
+  this.bodyType      = null;
+  this.format        = null;
+  this.callback      = null;
+  this.errorCallback = null;
+  this.scope         = null;
 };
 
 /**
- * Returns the request object.
- * @return {goog.net.XhrManager.Request}
- */
-closurekitchen.Project.Request.prototype.getRequest = function() {
-  return this.request_;
-};
-
-/**
- * Returns the request format of this request.
- * @return {closurekitchen.Project.Format}
- */
-closurekitchen.Project.Request.prototype.getFormat = function() {
-  return this.format_;
-};
-
-/**
- * invokes the callback function.
+ * Invokes the callback function.
+ * @param {Function} callback The function to call.
  * @param {Array=} args The arguments passed to callback.
  * @return {*} The return value of callback.
+ * @protected
  */
-closurekitchen.Project.Request.prototype.invokeCallback = function(args) {
-  return closurekitchen.Project.invokeCallback_(this.callback_, this.scope_, args);
+closurekitchen.Project.AbstractRequest.prototype.invokeCallback = function(callback, args) {
+  if(callback) {
+	goog.asserts.assertFunction(
+	  callback, 'callback must be a function but %s', goog.typeOf(callback));
+	args = args || [];
+	goog.asserts.assertArray(args, 'args must be an array but %s', goog.typeOf(args));
+	try {
+	  return callback.apply(this.scope || goog.global, args);
+	}catch(e){
+	  closurekitchen.Project.AbstractRequest.logger_.severe(
+		'An exception is thrown from the network request callback.', e);
+	  return null;
+	}
+  } else {
+	return null;
+  }
 };
 
 /**
- * invokes the error callback function.
- * @param {Array=} args The arguments passed to callback.
+ * Send this request.
+ * @param {closurekitchen.Project} project The related project.
+ */
+closurekitchen.Project.AbstractRequest.prototype.send = goog.abstractMethod;
+
+/**
+ * Emulate the request.
+ * @param {closurekitchen.Project} project The related project.
+ * @param {string=} opt_body The response body.
  * @return {*} The return value of callback.
  */
-closurekitchen.Project.Request.prototype.invokeErrorCallback = function(args) {
-  return closurekitchen.Project.invokeCallback_(this.errorCallback_, this.scope_, args);
+closurekitchen.Project.AbstractRequest.prototype.emulateSuccess = goog.abstractMethod;
+
+/**
+ * Request information.
+ * @param {string} uri Request uri.
+ * @param {string} method HTTP method.
+ * @param {?string} body Request body, if any.
+ * @param {?string} bodyType The content type of the request body.
+ * @param {closurekitchen.Project.Format} format Request format of this request.
+ * @param {Function} callback Function called when this request is completed.
+ * @param {Function} error Function called when this request is failed.
+ * @param {Object} scope this object of callback.
+ * @constructor
+ * @extends {closurekitchen.Project.AbstractRequest}
+ */
+closurekitchen.Project.Request = function(uri, method, body, bodyType,
+										  format, callback, error, scope) {
+  goog.base(this, uri, method, body, bodyType, format, callback, error, scope);
+};
+goog.inherits(closurekitchen.Project.Request, closurekitchen.Project.AbstractRequest);
+
+/**
+ * The logger for this class.
+ * @type { goog.debug.Logger }
+ * @private
+ */
+closurekitchen.Project.Request.logger_ =
+  goog.debug.Logger.getLogger('closurekitchen.Project.Request');
+
+/**
+ * Cache for REQUIRES request.
+ * @type {Object.<string, string>}
+ * @private
+ */
+closurekitchen.Project.cache_ = {};
+
+/**
+ * XhrManager instance to handle all ajax requests (except preview requests).
+ * @type {goog.net.XhrManager}
+ * @private
+ */
+closurekitchen.Project.Request.xhrManager_ = new goog.net.XhrManager();
+
+/**
+ * An id for ajax requests.
+ * @type {number}
+ * @private
+ */
+closurekitchen.Project.Request.nextXhrId_ = 1;
+
+/**
+ * Returns the XhrManager used in all requests.
+ * @return {goog.net.XhrManager} The XhrManager.
+ */
+closurekitchen.Project.Request.getXhrManager = function() {
+  return closurekitchen.Project.Request.xhrManager_;
+};
+
+/**
+ * Outputs the response to the logger.
+ * @param {goog.net.XhrIo} xhr A XhrIo instance.
+ * @private
+ */
+closurekitchen.Project.Request.logResponse_ = function(xhr) {
+  var isSuccess = xhr.isSuccess();
+  var log = ['Network access is ', isSuccess ? 'succeeded.' : 'failed.'];
+  log.push('\nuri: ', xhr.getLastUri(), '\nstatus: ', xhr.getStatus(), ' ', xhr.getStatusText());
+  if(!xhr.isSuccess()) {
+	log.push('\nlastError: ', xhr.getLastError());
+  }
+  log.push('\nbody:\n', xhr.getResponseText());
+  closurekitchen.Project.Request.logger_.log(
+	isSuccess ? goog.debug.Logger.Level.INFO : goog.debug.Logger.Level.WARNING,
+	log.join(''));
+};
+
+/**
+ * Send this request.
+ * @param {closurekitchen.Project} project The related project.
+ */
+closurekitchen.Project.Request.prototype.send = function(project) {
+  goog.asserts.assert(!this.project, 'This request has already sent');
+  this.project = project;
+
+  if((this.method == 'POST' || this.method == 'PUT') &&
+	 this.format == closurekitchen.Project.Format.REQUIRES) {
+	var cache = closurekitchen.Project.cache_[this.body];
+	if(cache) {
+	  this.emulateSuccess(this.project, cache);
+	  return;
+	}
+  }
+
+  closurekitchen.Project.Request.xhrManager_.send(
+	closurekitchen.Project.Request.nextXhrId_++,
+	this.uri,
+	this.method,
+	this.body,
+	goog.isString(this.bodyType) ? { 'Content-Type': this.bodyType } : {},
+	0,
+	goog.bind(this.processResponse_, this));
+};
+
+/**
+ * Process the response.
+ * @param {goog.events.Event} e An event object generated by XhrIo.
+ * @private
+ */
+closurekitchen.Project.Request.prototype.processResponse_ = function(e) {
+  try {
+	var xhr = e.target;
+	closurekitchen.Project.Request.logResponse_(xhr);
+	if(xhr.isSuccess()) {
+	  var body = xhr.getResponseText();
+	  if((this.method == 'POST' || this.method == 'PUT') &&
+		 this.format == closurekitchen.Project.Format.REQUIRES) {
+		closurekitchen.Project.cache_[this.body] = body;
+	  }
+	  this.emulateSuccess(this.project, body);
+	} else {
+	  request.invokeErrorCallback(this.errorCallback, [this.project, xhr.getResponseText()]);
+	  if(this.method == 'GET') {
+		this.project.unfetch();
+	  }
+	}
+  } finally {
+	this.dispose();
+  }
+};
+
+/**
+ * Emulate the request.
+ * @param {closurekitchen.Project} project The related project.
+ * @param {string=} opt_body The response body.
+ * @return {*} The return value of callback.
+ */
+closurekitchen.Project.Request.prototype.emulateSuccess = function(project, opt_body) {
+  try {
+	this.project = project;
+	if(this.method == 'GET' || this.method == 'POST') {
+	  this.project.load(opt_body, this.format);
+	}
+	this.invokeCallback(this.callback, [this.project, opt_body]);
+	if(this.method == 'DELETE') {
+	  this.project.dispose();
+	}
+  } finally {
+	this.dispose();
+  }
+};
+
+/**
+ * Dummy request information for local mode.
+ * @param {string} uri Request uri.
+ * @param {string} method HTTP method.
+ * @param {?string} body Request body, if any.
+ * @param {?string} bodyType The content type of the request body.
+ * @param {closurekitchen.Project.Format} format Request format of this request.
+ * @param {Function} callback Function called when this request is completed.
+ * @param {Function} error Function called when this request is failed.
+ * @param {Object} scope this object of callback.
+ * @constructor
+ * @extends {closurekitchen.Project.AbstractRequest}
+ */
+closurekitchen.Project.LocalRequest = function(uri, method, body, bodyType,
+											   format, callback, error, scope) {
+  goog.base(this, uri, method, body, bodyType, format, callback, error, scope);
+};
+goog.inherits(closurekitchen.Project.LocalRequest, closurekitchen.Project.AbstractRequest);
+
+/**
+ * Send this request.
+ * @param {closurekitchen.Project} project The related project.
+ */
+closurekitchen.Project.LocalRequest.prototype.send = function(project) {
+  goog.asserts.assert(!this.project, 'This request has already sent');
+  this.project = project;
+  var response = '{}';
+  if(this.method == 'POST' &&
+	 this.format != closurekitchen.Project.Format.PUBLISH &&
+	 this.format != closurekitchen.Project.Format.REQUIRES) {
+	response = '{"id":"' + Math.random() + '"}';
+  }
+  goog.global.setTimeout(goog.bind(this.emulateSuccess, this, this.project, response), 0);
+};
+
+/**
+ * Emulate the request.
+ * @param {closurekitchen.Project} project The related project.
+ * @param {string} opt_body The response body.
+ * @return {*} The return value of callback.
+ */
+closurekitchen.Project.LocalRequest.prototype.emulateSuccess = function(project, opt_body) {
+  this.project = project;
+  if(this.method == 'GET' || this.method == 'POST') {
+	this.project.load(opt_body, this.format);
+  }
+  this.invokeCallback(this.callback, [this.project, opt_body]);
+  if(this.method == 'DELETE') {
+	this.project.dispose();
+  }
 };
