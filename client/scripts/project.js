@@ -170,7 +170,7 @@ closurekitchen.Project.prototype.htmlcode_ = null;
 /** @inheritDoc */
 closurekitchen.Project.prototype.disposeInternal = function() {
   if(!this.isNew()) {
-	closurekitchen.Project.logger_.info('Project ' + this.id_ + 'is removed from index.');
+	closurekitchen.Project.logger_.info('Project ' + this.id_ + ' is removed from index.');
 	goog.object.remove(closurekitchen.Project.entities_, this.id_);
   }
   this.type_      = null;

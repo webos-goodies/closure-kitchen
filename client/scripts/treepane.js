@@ -275,10 +275,19 @@ closurekitchen.TreePane.prototype.applyProject = function(project) {
 closurekitchen.TreePane.prototype.deleteProject = function(project) {
   var node = this.findByProject_(project), parent = null;
   if(node) {
-	while(node.getChildCount() == 0 && (parent = node.getParent())) {
+	while(node.getChildCount() == 0 && node.getDepth() > 0 && (parent = node.getParent())) {
 	  parent.removeChild(node);
+	  node.dispose();
 	  node = parent;
 	}
+  }
+  if(this.privateFolder_ && this.privateFolder_.isDisposed()) {
+	this.privateFolder_ = null;
+	closurekitchen.TreePane.logger_.info('Private folder is deleted.');
+  }
+  if(this.publicFolder_ && this.publicFolder_.isDisposed()) {
+	this.publicFolder_ = null;
+	closurekitchen.TreePane.logger_.info('Public folder is deleted.');
   }
 };
 

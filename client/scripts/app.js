@@ -513,6 +513,8 @@ closurekitchen.App.prototype.onAction_ = function(e) {
 	this.actionUpdatePreview_();
   } else if(actionId == ActionID.CLEAR_CONSOLE) {
 	this.consolePane_.clear();
+  } else if(actionId == ActionID.TAB_CHANGED) {
+	// nothing to do here. just update components.
   } else {
 	this.editorPane_.doAction(actionId, data);
   }

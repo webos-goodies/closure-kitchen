@@ -20,7 +20,8 @@ closurekitchen.ActionID = {
   REDO:                    'REDO',
   UPDATE_PREVIEW:          'UPDATE_PREVIEW',
   CURRENT_PROJECT_CHANGED: 'CURRENT_PROJECT_CHANGED',
-  CLEAR_CONSOLE:           'CLEAR_CONSOLE'
+  CLEAR_CONSOLE:           'CLEAR_CONSOLE',
+  TAB_CHANGED:             'TAB_CHANGED'
 };
 
 /**
