@@ -56,7 +56,8 @@ closurekitchen.i18n.msg.ja_JP = {
   'New project':              '新規プロジェクト',
   'Attention':                'ご利用上の注意',
   'Failed to load "{$name}"': '"{$name}"の読み込みに失敗しました。',
-  'The curent project is modified.\nDiscard anyway?': 'プロジェクトの変更を破棄しますか？'
+  'The curent project is modified.\nDiscard anyway?': 'プロジェクトの変更を破棄しますか？',
+  'Are you sure to delete {$name}?': '{$name} を削除してよろしいですか？'
 };
 
 /**

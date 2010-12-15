@@ -68,13 +68,24 @@ class JavaScriptOptimizer
     @optimize        = config[:optimize]
   end
 
-  def optimize(*paths)
-    code = paths.map{|path| IO.read(path) }.join("\n")
+  def optimize_str(code)
     code = exec([@java, '-jar', @yuicompressor, '--type', 'js'], code) if @optimize
     code
   end
 
-  def compile(compiler_opts={}, *paths)
+  def optimize(*paths)
+    optimize_str(paths.map{|path| IO.read(path) }.join("\n"))
+  end
+
+  def compile_str(compiler_opts, code)
+    if @optimize
+      opts = build_closure_opts(@closureopts.merge(compiler_opts))
+      code = exec([@java, '-jar', @closurecompiler, opts], code)
+    end
+    code
+  end
+
+  def compile(compiler_opts, *paths)
     if @optimize
       opts = build_closure_opts(@closureopts.merge(compiler_opts))
       code = exec([@java, '-jar', @closurecompiler, opts,
@@ -328,7 +339,7 @@ task :deps do
       "--output_file=#{DEPS_FILE}"].flatten.join(' ')
 end
 
-task :build => [:index, :files, :script, :closurefiles] do
+task :build => [:index, :files, :script, :closurefiles, :closurejs] do
 end
 
 task :index do |t, args|
@@ -394,7 +405,36 @@ rule(/^#{SERVER_JS_REGEX}.*\.js$/u =>
      [proc {|n| File.join(CLOSURE_LIB_DIR, n.gsub(/^#{SERVER_JS_REGEX}/u, '')) }]) do |t|
   print "optimizing #{File.basename(t.source)}...\n"
   mkdir_p(File.dirname(t.name), :verbose => false)
-  jscode = JavaScriptOptimizer.new(SERVER_JS_OPTS).optimize(t.source)
+  basename = File.basename(t.name)
+  jscode   = IO.read(t.source).gsub(/^\s*goog\.require\s*\(\s*[\'\"][\w.]+[\'\"]\s*\)\s*;?/u,'')
+  if (basename == 'datetimesymbols.js'     ||
+      basename == 'datetimesymbolsext.js'  ||
+      basename == 'datetimepatterns.js'    ||
+      basename == 'datetimepatternsext.js' ||
+      basename == 'numberformatsymbols.js')
+    klass = {
+      'datetimesymbols.js'     => 'goog.i18n.DateTimeSymbols',
+      'datetimesymbolsext.js'  => 'goog.i18n.DateTimeSymbols',
+      'datetimepatterns.js'    => 'goog.i18n.DateTimePatterns',
+      'datetimepatternsext.js' => 'goog.i18n.DateTimePatterns',
+      'numberformatsymbols.js' => 'goog.i18n.NumberFormatSymbols'
+    }[basename]
+    regex = /^#{Regexp.escape(klass)}_(\w+)\s*\=.+?\;\s*$/mu
+    lang  = []
+    exist = false
+    jscode = jscode.gsub(regex) do |match|
+      if $1 == 'en'
+        exist = true
+        match
+      else
+        lang << $1
+        ''
+      end
+    end.gsub(/^if\s*\(\s*goog\.LOCALE.+/mu, '')
+    jscode += lang.map{|s| "#{klass}_#{s} = #{klass}_en;\n" }.join('')
+    jscode += "#{klass} = #{klass}_en;\n" if exist
+  end
+  jscode = JavaScriptOptimizer.new(SERVER_JS_OPTS).optimize_str(jscode)
   File.open(t.name, 'w') {|file| file << jscode }
 end
 

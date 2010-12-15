@@ -494,9 +494,7 @@ closurekitchen.App.prototype.onAction_ = function(e) {
   } else if(actionId == ActionID.RENAME_PROJECT) {
 	this.actionRenameProject_(data);
   } else if(actionId == ActionID.DELETE_PROJECT) {
-	if(this.confirmToClose_()) {
-	  this.actionDeleteProject_(data);
-	}
+	this.actionDeleteProject_(data);
   } else if(actionId == ActionID.SAVE_CURRENT_PROJECT) {
 	this.actionSaveCurrentProject_();
   } else if(actionId == ActionID.CLONE_CURRENT_PROJECT) {
@@ -585,13 +583,15 @@ closurekitchen.App.prototype.onRenameProjectCompleted_ = function(project) {
  * @private
  */
 closurekitchen.App.prototype.actionDeleteProject_ = function(projectId) {
-  if(this.currentProject_.getId() == projectId) {
-	this.openProject_(new Project(Project.Type.PRIVATE));
-  }
   var project = projectId && Project.findById(projectId);
   goog.asserts.assert(project, 'DELETE_PROJECT action invoked without a project id.');
-  project.del();
-  this.treePane_.deleteProject(project);
+  if(confirm(goog.getMsg('Are you sure to delete {$name}?', { 'name': project.getName() }))) {
+	if(this.currentProject_.getId() == projectId) {
+	  this.openProject_(new Project(Project.Type.PRIVATE));
+	}
+	project.del();
+	this.treePane_.deleteProject(project);
+  }
 };
 
 /**
