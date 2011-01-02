@@ -8,6 +8,8 @@
 @import "closure-library/closure/goog/css/tab.css";
 @import "closure-library/closure/goog/css/tabbar.css";
 @import "closure-library/closure/goog/css/dialog.css";
+@import "closure-library/closure/goog/css/autocomplete.css";
+@import "wgui/css/textinput.css";
 
 /* ページスクロールバー非表示 */
 html { overflow: hidden; }

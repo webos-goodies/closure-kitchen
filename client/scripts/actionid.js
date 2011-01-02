@@ -21,7 +21,8 @@ closurekitchen.ActionID = {
   UPDATE_PREVIEW:          'UPDATE_PREVIEW',
   CURRENT_PROJECT_CHANGED: 'CURRENT_PROJECT_CHANGED',
   CLEAR_CONSOLE:           'CLEAR_CONSOLE',
-  TAB_CHANGED:             'TAB_CHANGED'
+  TAB_CHANGED:             'TAB_CHANGED',
+  SEARCH:                  'SEARCH'
 };
 
 /**
@@ -31,7 +32,8 @@ closurekitchen.ActionID = {
 closurekitchen.ActionType = {
   ONE_SHOT: 'oneshot',
   TOGGLE:   'toggle',
-  SELECT:   'select'
+  SELECT:   'select',
+  TEXT:     'text'
 };
 
 /**
@@ -109,4 +111,9 @@ closurekitchen.ActionMetaData[closurekitchen.ActionID.CLEAR_CONSOLE] = {
   type:    closurekitchen.ActionType.ONE_SHOT,
   content: goog.getMsg('Clear'),
   tooltip: goog.getMsg('Clear debug console.')
+};
+closurekitchen.ActionMetaData[closurekitchen.ActionID.SEARCH] = {
+  type:    closurekitchen.ActionType.TEXT,
+  content: '',
+  tooltip: goog.getMsg('Search the editting text or the closure library reference.')
 };

@@ -74,6 +74,12 @@ closurekitchen.AbstractEditorTab.prototype.updateStatusBundle = function(bundle)
 closurekitchen.AbstractEditorTab.prototype.doAction = goog.nullFunction;
 
 /** @inheritDoc */
+closurekitchen.AbstractEditorTab.prototype.disposeInternal = function() {
+  this.caption_ = null;
+  goog.base(this, 'disposeInternal');
+};
+
+/** @inheritDoc */
 closurekitchen.AbstractEditorTab.prototype.createDom = function() {
   var dom = this.getDomHelper();
   this.setElementInternal(

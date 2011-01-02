@@ -42,6 +42,7 @@ closurekitchen.StatusBundle.prototype.actionStatus_;
  *   if the action is ONE_SHOT, this value is ignored.
  *   if the action is TOGGLE, this value is boolean (true means checked).
  *   if the action is SELECT, this value is the selected value.
+ *   if the action is TEXT, this value is the value of the text field.
  * @protected
  */
 closurekitchen.StatusBundle.prototype.setActionStatus =

@@ -3,6 +3,7 @@ goog.require('goog.string');
 goog.require('goog.Uri');
 goog.require('goog.json');
 goog.require('goog.array');
+goog.require('goog.object');
 goog.require('goog.async.Delay');
 goog.require('goog.dom');
 goog.require('goog.dom.forms');
@@ -12,6 +13,7 @@ goog.require('goog.fx.dom.FadeInAndShow');
 goog.require('goog.fx.dom.FadeOutAndHide');
 goog.require('goog.events.EventHandler');
 goog.require('goog.net.cookies');
+goog.require('goog.net.XhrIo');
 goog.require('goog.ui.KeyboardShortcutHandler');
 goog.require('goog.ui.Dialog');
 goog.require('goog.debug.Logger');
@@ -119,6 +121,8 @@ closurekitchen.App = function() {
   this.eventHandler_.
     listen(xhrManager, goog.net.EventType.READY,    this.onXhrReady_).
     listen(xhrManager, goog.net.EventType.COMPLETE, this.onXhrComplete_);
+
+  this.loadReference_();
 
   if(!this.user_.isUser()) {
 	var dialog = new goog.ui.Dialog();
@@ -260,6 +264,13 @@ closurekitchen.App.prototype.fadeInIndicator_;
  * @private
  */
 closurekitchen.App.prototype.fadeOutIndicator_;
+
+/**
+ * The map between class / script name and its reference page.
+ * @type {Object.<string, string>}
+ * @private
+ */
+closurekitchen.App.prototype.referenceMap_ = {};
 
 /**
  * Save the project information into the local storage.
@@ -511,6 +522,10 @@ closurekitchen.App.prototype.onAction_ = function(e) {
 	this.actionUpdatePreview_();
   } else if(actionId == ActionID.CLEAR_CONSOLE) {
 	this.consolePane_.clear();
+  } else if(actionId == ActionID.SEARCH) {
+	if(this.referenceMap_[data]) {
+	  this.editorPane_.search(this.referenceMap_[data]);
+	}
   } else if(actionId == ActionID.TAB_CHANGED) {
 	// nothing to do here. just update components.
   } else {
@@ -720,6 +735,53 @@ closurekitchen.App.prototype.updatePreview_ = function(requires, jsCode, htmlCod
   htmlCode = htmlCode.replace(/\{\{\s*script\s*\}\}/i, function() { return jsTags; });
   this.editorPane_.updatePreview(htmlCode, jsCode);
 };
+
+/**
+ * Fetch the index of closure library's reference.
+ * @private
+ */
+closurekitchen.App.prototype.loadReference_ = function() {
+  closurekitchen.App.logger_.info('Load files/doc_json_index.js...');
+  goog.net.XhrIo.send('files/doc_json_index.js', goog.bind(this.loadReferenceComplete_, this));
+};
+
+/**
+ * This method is called when the index of closure library's reference is loaded.
+ * @param {goog.events.Event} e The event object.
+ * @private
+ */
+closurekitchen.App.prototype.loadReferenceComplete_ = function(e) {
+  if(e.target.isSuccess()) {
+	closurekitchen.App.logger_.info('files/doc_json_index.js is loaded.');
+	this.referenceMap_ = {};
+	var json = e.target.getResponseJson();
+	this.parseReferenceIndex_(json['typeIndex'][2], '.', '');
+	this.parseReferenceIndex_(json['fileIndex'][2]['closure'][2], '/', '');
+	this.editorPane_.setSearchCompletion(goog.object.getKeys(this.referenceMap_).sort());
+	closurekitchen.App.logger_.info('Finished to set up auto-completion.');
+  } else {
+	closurekitchen.App.logger_.warning('Failed to load files/doc_json_index.js.');
+  }
+};
+
+/**
+ * Parse the array of entries of the closure library's reference.
+ * @param {Array} data The array of entries.
+ * @param {string} separator A separator of the entry names.
+ * @param {string} path The path of the parent entry.
+ * @private
+*/
+closurekitchen.App.prototype.parseReferenceIndex_ = function(data, separator, path) {
+  goog.object.forEach(data, function(child, name) {
+	if(child[1] && !/_$/.test(name)) {
+	  this.referenceMap_[path + name] = child[1];
+	}
+	if(child[2]) {
+	  this.parseReferenceIndex_(child[2], separator, path + name + separator);
+	}
+  }, this);
+};
+
 
 goog.debug.Console.autoInstall();
 goog.debug.Console.instance.getFormatter().showExceptionText = true;

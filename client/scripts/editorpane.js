@@ -4,24 +4,23 @@ goog.require('goog.dom');
 goog.require('goog.ui.Component');
 goog.require('goog.ui.Tab');
 goog.require('goog.ui.TabBar');
-goog.require('goog.ui.Toolbar');
-goog.require('goog.ui.ToolbarSeparator');
 goog.require('closurekitchen.i18n');
 goog.require('closurekitchen.ActionID');
 goog.require('closurekitchen.ActionEvent');
 goog.require('closurekitchen.User');
 goog.require('closurekitchen.Project');
 goog.require('closurekitchen.ComponentBuilder');
+goog.require('closurekitchen.Toolbar');
 goog.require('closurekitchen.JsEditorTab');
 goog.require('closurekitchen.HtmlEditorTab');
 goog.require('closurekitchen.PreviewTab');
+goog.require('closurekitchen.ReferenceTab');
 
 goog.scope(function() {
-var TabBar           = goog.ui.TabBar;
-var TabBarRenderer   = goog.ui.TabBarRenderer;
-var ToolbarSeparator = goog.ui.ToolbarSeparator;
-var ActionID         = closurekitchen.ActionID;
-var ActionEvent      = closurekitchen.ActionEvent;
+var TabBar         = goog.ui.TabBar;
+var TabBarRenderer = goog.ui.TabBarRenderer;
+var ActionID       = closurekitchen.ActionID;
+var ActionEvent    = closurekitchen.ActionEvent;
 
 /**
  * A component that contains JavaScript / HTML editors and a preview.
@@ -37,19 +36,8 @@ closurekitchen.EditorPane = function(project, opt_domHelper) {
   this.renamable_   = false;
   this.projectName_ = project.getName();
 
-  this.toolbar_ = new goog.ui.Toolbar(null, null, opt_domHelper);
+  this.toolbar_ = new closurekitchen.Toolbar(opt_domHelper);
   this.addChild(this.toolbar_);
-
-  var builder = new closurekitchen.ComponentBuilder(opt_domHelper);
-  this.toolbar_.addChild(builder.buildToolbarButton(ActionID.NEW_PROJECT));
-  this.toolbar_.addChild(builder.buildToolbarButton(ActionID.SAVE_CURRENT_PROJECT));
-  this.toolbar_.addChild(builder.buildToolbarButton(ActionID.CLONE_CURRENT_PROJECT));
-  this.toolbar_.addChild(new ToolbarSeparator(null, opt_domHelper));
-  this.toolbar_.addChild(builder.buildToolbarButton(ActionID.UNDO));
-  this.toolbar_.addChild(builder.buildToolbarButton(ActionID.REDO));
-  this.toolbar_.addChild(new ToolbarSeparator(null, opt_domHelper));
-  this.toolbar_.addChild(builder.buildToolbarButton(ActionID.UPDATE_PREVIEW));
-  this.toolbar_.addChild(builder.buildToolbarButton(ActionID.PUBLISH_CURRENT_PROJECT));
 
   this.tabBar_ = new TabBar(TabBar.Location.TOP, TabBarRenderer.getInstance(), opt_domHelper);
   this.addChild(this.tabBar_);
@@ -57,7 +45,8 @@ closurekitchen.EditorPane = function(project, opt_domHelper) {
   this.tabContents_ = [
 	new closurekitchen.JsEditorTab(project.getJsCode(), opt_domHelper),
 	new closurekitchen.HtmlEditorTab(project.getHtmlCode(), opt_domHelper),
-	new closurekitchen.PreviewTab(opt_domHelper)];
+	new closurekitchen.PreviewTab(opt_domHelper),
+	new closurekitchen.ReferenceTab(opt_domHelper)];
 
   goog.array.forEach(this.tabContents_, function(content) {
 	this.tabBar_.addChild(new goog.ui.Tab(content.getCaption(), null, opt_domHelper));
@@ -187,6 +176,26 @@ closurekitchen.EditorPane.prototype.onSelectTab_ = function(e) {
 };
 
 /**
+ * Execute the action.
+ * @param {closurekitchen.ActionID} actionId ID of the action to execute.
+ * @param {*=} opt_data Optional argument of the action.
+ */
+closurekitchen.EditorPane.prototype.doAction = function(actionId, opt_data) {
+  var index = this.tabBar_.getSelectedTabIndex();
+  if(this.tabContents_[index]) {
+	this.tabContents_[index].doAction(actionId, opt_data);
+  }
+};
+
+/**
+ * Set the auto-completion data to search field.
+ * @param {Array.<string>} data the auto-completion data.
+ */
+closurekitchen.EditorPane.prototype.setSearchCompletion = function(data) {
+  this.toolbar_.setSearchCompletion(data);
+};
+
+/**
  * Copy contents to the specified project.
  * @param {closurekitchen.Project} project The project copies data to.
  */
@@ -216,6 +225,16 @@ closurekitchen.EditorPane.prototype.importFromProject = function(project) {
 closurekitchen.EditorPane.prototype.updatePreview = function(html, js) {
   this.tabContents_[2].setContent(html);
   this.tabBar_.setSelectedTabIndex(2);
+};
+
+/**
+ * Search the specified text.
+ * @param {string} searchText The search text.
+ * @private
+ */
+closurekitchen.EditorPane.prototype.search = function(searchText) {
+  this.tabContents_[3].setContent(searchText);
+  this.tabBar_.setSelectedTabIndex(3);
 };
 
 /**
@@ -258,6 +277,7 @@ closurekitchen.EditorPane.prototype.createDom = function() {
   this.projNameEl_ = dom.createDom('span', null, this.getDisplayProjectName());
   this.toolbar_.createDom();
   this.tabBar_.createDom();
+  this.createChildDom_(this.tabBar_);
   this.setElementInternal(dom.createDom(
 	'div', closurekitchen.EditorPane.CLASS_NAME_,
 	dom.createDom('div', closurekitchen.EditorPane.PROJNAME_CLASS_NAME_, this.projNameEl_),
@@ -265,8 +285,6 @@ closurekitchen.EditorPane.prototype.createDom = function() {
 				  this.tabBar_.getElement(),
 				  dom.createDom('div', 'goog-tab-bar-clear')),
 	contentEl));
-  this.createChildDom_(this.toolbar_);
-  this.createChildDom_(this.tabBar_);
 
   dom.appendChild(contentEl, this.toolbar_.getElement());
   goog.array.forEach(this.tabContents_, function(content) {
@@ -296,18 +314,6 @@ closurekitchen.EditorPane.prototype.updateByStatusBundle = function(bundle) {
   if(status && this.projNameEl_) {
 	this.projNameEl_.parentNode.style.display = status.visible ? 'block' : 'none';
 	this.renamable_ = status.enabled;
-  }
-};
-
-/**
- * Execute the action.
- * @param {closurekitchen.ActionID} actionId ID of the action to execute.
- * @param {*=} opt_data Optional argument of the action.
- */
-closurekitchen.EditorPane.prototype.doAction = function(actionId, opt_data) {
-  var index = this.tabBar_.getSelectedTabIndex();
-  if(this.tabContents_[index]) {
-	this.tabContents_[index].doAction(actionId, opt_data);
   }
 };
 

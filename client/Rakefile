@@ -12,7 +12,7 @@ CLOSURE_LIB_DIR = File.expand_path('closure-library')
 DEPSWRITER      = File.join(CLOSURE_LIB_DIR, 'closure/bin/build/depswriter.py')
 CLOSUREBUILDER  = File.join(CLOSURE_LIB_DIR, 'closure/bin/build/closurebuilder.py')
 DEPS_FILE       = 'deps.js'
-SCRIPT_DIR      = 'scripts'
+SCRIPT_DIRS     = ['scripts', 'wgui']
 STATIC_DIR      = 'files'
 CODEMIRROR_DIR  = 'codemirror'
 CODEMIRROR_JS   = ['util.js','stringstream.js','select.js','undo.js','editor.js','tokenize.js']
@@ -335,7 +335,7 @@ end
 
 task :deps do
   sh ["#{PYTHON} #{DEPSWRITER}",
-      "--root_with_prefix='#{SCRIPT_DIR} ../../../#{SCRIPT_DIR}'",
+      SCRIPT_DIRS.map {|dir| "--root_with_prefix='#{dir} ../../../#{dir}'" },
       "--output_file=#{DEPS_FILE}"].flatten.join(' ')
 end
 
@@ -361,7 +361,7 @@ task :script do |t, args|
   opts[:optimize] = args['optimize'] != 'no'
   conv            = JavaScriptOptimizer.new(opts)
   jscode          = conv.optimize(File.join(CODEMIRROR_DIR, 'js/codemirror.js')) + "\n";
-  jscode         += conv.compile_closure_app('closurekitchen.App', nil, SCRIPT_DIR)
+  jscode         += conv.compile_closure_app('closurekitchen.App', nil, *SCRIPT_DIRS)
   File.open(File.join(SERVER_DIR, STATIC_DIR, 'script.js'), 'w') do |file|
     file << jscode
   end
