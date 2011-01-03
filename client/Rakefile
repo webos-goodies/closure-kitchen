@@ -92,7 +92,7 @@ task :index do |t, args|
   end
 end
 
-task :files do
+task :files do |t, args|
   copy_dir(STATIC_DIR, File.join(SERVER_DIR, STATIC_DIR))
 
   opts            = OPTIMIZE_OPTIONS.dup
