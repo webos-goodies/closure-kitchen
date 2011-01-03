@@ -256,6 +256,28 @@ closurekitchen.EditorPane.prototype.resize = function(size) {
 };
 
 /**
+ * Find text forward.
+ * @param {string} text The search text.
+ */
+closurekitchen.EditorPane.prototype.findNext = function(text) {
+  var index = this.tabBar_.getSelectedTabIndex();
+  if(this.tabContents_[index]) {
+	this.tabContents_[index].findNext(text);
+  }
+};
+
+/**
+ * Find text backword.
+ * @param {string} text The search text.
+ */
+closurekitchen.EditorPane.prototype.findPrevious = function(text) {
+  var index = this.tabBar_.getSelectedTabIndex();
+  if(this.tabContents_[index]) {
+	this.tabContents_[index].findPrevious(text);
+  }
+};
+
+/**
  * Calls createDom() for all children.
  * @param {goog.ui.Component} component The parent component.
  * @param {Array.<goog.ui.Component>} opt_children The child components.

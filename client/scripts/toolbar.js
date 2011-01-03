@@ -39,6 +39,8 @@ closurekitchen.Toolbar = function(opt_domHelper) {
   this.addChild(builder.buildToolbarItem(ActionID.PUBLISH_CURRENT_PROJECT));
   this.addChild(new Separator(null, opt_domHelper));
   this.addChild(builder.buildToolbarItem(ActionID.SEARCH, null, ActionID.SEARCH));
+  this.addChild(builder.buildToolbarItem(ActionID.FIND_NEXT, null, ActionID.FIND_NEXT));
+  this.addChild(builder.buildToolbarItem(ActionID.FIND_PREV, null, ActionID.FIND_PREV));
 };
 goog.inherits(closurekitchen.Toolbar, Toolbar);
 
@@ -58,6 +60,19 @@ closurekitchen.Toolbar.prototype.setSearchCompletion = function(data) {
 	data, this.getChild(ActionID.SEARCH).getContentElement());
   this.searchCompletion_.setAllowFreeSelect(true);
   this.searchCompletion_.setAutoHilite(false);
+};
+
+/**
+ * This method is called when the find forward / backward button is clicked.
+ * @param {goog.events.Event} e The event object.
+ * @private
+ */
+closurekitchen.Toolbar.prototype.onActionFind_ = function(e) {
+  var model = e.target.getModel();
+  if(model) {
+	e.stopPropagation();
+	ActionEvent.dispatch(this, model.actionId, this.getChild(ActionID.SEARCH).getContent());
+  }
 };
 
 /** @inheritDoc */
@@ -82,6 +97,15 @@ closurekitchen.Toolbar.prototype.enterDocument = function() {
   // Make the search field selectable.
   goog.style.setUnselectable(
 	this.getChild(ActionID.SEARCH).getElement(), false, goog.userAgent.GECKO);
+
+  // Listen the action event to modify its data.
+  var eh = this.getHandler();
+  eh.listen(this.getChild(ActionID.FIND_NEXT),
+			goog.ui.Component.EventType.ACTION,
+			this.onActionFind_);
+  eh.listen(this.getChild(ActionID.FIND_PREV),
+			goog.ui.Component.EventType.ACTION,
+			this.onActionFind_);
 }
 
 /** @inheritDoc */

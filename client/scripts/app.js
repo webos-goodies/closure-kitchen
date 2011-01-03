@@ -311,7 +311,8 @@ closurekitchen.App.prototype.updateComponents_ = function() {
 		isPriv:     this.currentProject_.isPrivate(),
 		isNew:      this.currentProject_.isNew(),
 		isModified: this.isModified_,
-		exist:      true
+		exist:      true,
+		canFind:    false
 	  });
 	  this.rootComponent_.updateByStatusBundle(bundle);
 	} finally {
@@ -526,7 +527,13 @@ closurekitchen.App.prototype.onAction_ = function(e) {
 	var match = /^doc:(.*)/.exec(data);
 	if(match && this.referenceMap_[match[1]]) {
 	  this.editorPane_.showReference(this.referenceMap_[match[1]]);
+	} else {
+	  this.editorPane_.findNext(data);
 	}
+  } else if(actionId == ActionID.FIND_NEXT) {
+	this.editorPane_.findNext(data);
+  } else if(actionId == ActionID.FIND_PREV) {
+	this.editorPane_.findPrevious(data);
   } else if(actionId == ActionID.TAB_CHANGED) {
 	// nothing to do here. just update components.
   } else {
@@ -774,7 +781,7 @@ closurekitchen.App.prototype.loadReferenceComplete_ = function(e) {
 */
 closurekitchen.App.prototype.parseReferenceIndex_ = function(data, separator, path) {
   goog.object.forEach(data, function(child, name) {
-	if(child[1] && !/_$/.test(name)) {
+	if(child[0] != 'namespace' && child[1] && !/_(?:test\.js)?$/.test(name)) {
 	  this.referenceMap_[path + name] = child[1];
 	}
 	if(child[2]) {

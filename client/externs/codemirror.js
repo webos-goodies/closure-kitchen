@@ -92,7 +92,7 @@ CodeMirror.prototype.reindentSelection = function() {};
  * @param {string} str The string that should be searched for.
  * @param {boolean|Object} startPos starting position.
  * @param {boolean=} opt_caseFold The search will be case-sensitive or not.
- * @returns {Object} An object that provides an interface for searching
+ * @returns {CodeMirror.SearchCursor} An object that provides an interface for searching
  */
 CodeMirror.prototype.getSearchCursor = function(str, startPos, opt_caseFold) {};
 
@@ -158,6 +158,14 @@ CodeMirror.prototype.setParser = function(name, parserConfig) {};
 CodeMirror.prototype.cursorCoords = function(start) {};
 
 /**
+ * Retrieve a {line, character} object representing the cursor position.
+ * @param {boolean=} opt_start defaults to true and determines if the
+ *     startpoint or the endpoint of the selection is used.
+ * @returns {{line:number, character:number}} The cursor position.
+ */
+CodeMirror.prototype.cursorPosition = function(start) {};
+
+/**
  * Editor object
  * @type {CodeMirror.Editor}
  */
@@ -200,3 +208,28 @@ CodeMirror.UndoHistory.prototype.onChange;
  * @param {boolean} doNotHighlight
  */
 CodeMirror.UndoHistory.prototype.commit = function(doNotHighlight) {};
+
+
+/**
+ * A search cursor. The instance of this class is generated and returned by
+ * getSearchCursor() method.
+ * @constructor
+ */
+CodeMirror.SearchCursor = function() {};
+
+/**
+ * Finds the text forward.
+ * @return {boolean} True if the search text is found, false otherwise.
+ */
+CodeMirror.SearchCursor.prototype.findNext = function() {};
+
+/**
+ * Finds the text backward.
+ * @return {boolean} True if the search text is found, false otherwise.
+ */
+CodeMirror.SearchCursor.prototype.findPrevious = function() {};
+
+/**
+ * Selects the matched text.
+ */
+CodeMirror.SearchCursor.prototype.select = function() {};

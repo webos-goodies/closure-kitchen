@@ -58,6 +58,18 @@ closurekitchen.AbstractEditorTab.prototype.resize = function(size) {
 };
 
 /**
+ * Find text forward.
+ * @param {string} text The search text.
+ */
+closurekitchen.AbstractEditorTab.prototype.findNext = function(text) {};
+
+/**
+ * Find text backword.
+ * @param {string} text The search text.
+ */
+closurekitchen.AbstractEditorTab.prototype.findPrevious = function(text) {};
+
+/**
  * Reflect the tab status to the status bundle.
  * @param {closurekitchen.StatusBundle} bundle The status bundle.
  * @return {closurekitchen.StatusBundle} The new status bundle.

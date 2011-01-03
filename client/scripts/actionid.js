@@ -22,7 +22,9 @@ closurekitchen.ActionID = {
   CURRENT_PROJECT_CHANGED: 'CURRENT_PROJECT_CHANGED',
   CLEAR_CONSOLE:           'CLEAR_CONSOLE',
   TAB_CHANGED:             'TAB_CHANGED',
-  SEARCH:                  'SEARCH'
+  SEARCH:                  'SEARCH',
+  FIND_NEXT:               'FIND_NEXT',
+  FIND_PREV:               'FIND_PREV'
 };
 
 /**
@@ -115,5 +117,17 @@ closurekitchen.ActionMetaData[closurekitchen.ActionID.CLEAR_CONSOLE] = {
 closurekitchen.ActionMetaData[closurekitchen.ActionID.SEARCH] = {
   type:    closurekitchen.ActionType.TEXT,
   content: '',
-  tooltip: goog.getMsg('Search the editting text or the closure library reference.')
+  tooltip: goog.getMsg('Search the editting text or the api reference.')
+};
+closurekitchen.ActionMetaData[closurekitchen.ActionID.FIND_NEXT] = {
+  type:    closurekitchen.ActionType.ONE_SHOT,
+  cls:     'toolbar-icon toolbar-icon-down',
+  content: goog.getMsg('Find Forward'),
+  tooltip: goog.getMsg('Find the text forward.')
+};
+closurekitchen.ActionMetaData[closurekitchen.ActionID.FIND_PREV] = {
+  type:    closurekitchen.ActionType.ONE_SHOT,
+  cls:     'toolbar-icon toolbar-icon-up',
+  content: goog.getMsg('Find Backward'),
+  tooltip: goog.getMsg('Find the text backward.')
 };

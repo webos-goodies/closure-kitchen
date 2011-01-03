@@ -156,6 +156,28 @@ closurekitchen.CodeMirrorTab.prototype.setCode = function(code) {
 };
 
 /** @inheritDoc */
+closurekitchen.CodeMirrorTab.prototype.findNext = function(text) {
+  if(this.editor_) {
+	var pos = this.editor_.cursorPosition(false);
+	var cur = this.editor_.getSearchCursor(text, pos);
+	if(cur.findNext()) {
+	  cur.select();
+	}
+  }
+};
+
+/** @inheritDoc */
+closurekitchen.CodeMirrorTab.prototype.findPrevious = function(text) {
+  if(this.editor_) {
+	var pos = this.editor_.cursorPosition(true);
+	var cur = this.editor_.getSearchCursor(text, pos);
+	if(cur.findPrevious()) {
+	  cur.select();
+	}
+  }
+};
+
+/** @inheritDoc */
 closurekitchen.CodeMirrorTab.prototype.enterDocument = function() {
   goog.base(this, 'enterDocument');
   this.editor_ = new CodeMirror(this.getElement(), this.config_);
@@ -174,6 +196,7 @@ closurekitchen.CodeMirrorTab.prototype.updateStatusBundle = function(bundle) {
 	var historySize = this.editor_.historySize();
 	appStatus.canUndo = historySize['undo'] > 0;
 	appStatus.canRedo = historySize['redo'] > 0;
+	appStatus.canFind = true;
 	return new closurekitchen.StatusBundle(appStatus);
   }
   return goog.base(this, 'updateStatusBundle', bundle);

@@ -43,6 +43,10 @@ closurekitchen.i18n.msg.ja_JP = {
   'Reload and update preview.':       'プレビューの内容を更新する。',
   'Clear':                            'クリア',
   'Clear debug console.':             'デバッグコンソールの内容をクリアする。',
+  'Find Forward':                     '前方検索',
+  'Find the text forward.':           'テキストを前方検索する。',
+  'Find Backward':                    '後方検索',
+  'Find the text backward.':          'テキストを後方検索する。',
 
   // ツリー表示
   'Private projects': '個人のプロジェクト',

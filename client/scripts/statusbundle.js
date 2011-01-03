@@ -67,6 +67,7 @@ closurekitchen.StatusBundle.prototype.build = function() {
   var exist     = !!this.appStatus_.exist;
   var canUndo   = !!this.appStatus_.canUndo;
   var canRedo   = !!this.appStatus_.canRedo;
+  var canFind   = !!this.appStatus_.canFind;
   var canRename = exist && isUser && (isAdmin || isPriv);
   this.setActionStatus(ActionID.NEW_PROJECT,             true,    true);
   this.setActionStatus(ActionID.OPEN_PROJECT,            true,    exist);
@@ -79,6 +80,8 @@ closurekitchen.StatusBundle.prototype.build = function() {
   this.setActionStatus(ActionID.UNDO,                    true,    canUndo);
   this.setActionStatus(ActionID.REDO,                    true,    canRedo);
   this.setActionStatus(ActionID.UPDATE_PREVIEW,          true,    true);
+  this.setActionStatus(ActionID.FIND_NEXT,               true,    canFind);
+  this.setActionStatus(ActionID.FIND_PREV,               true,    canFind);
 };
 
 /**
