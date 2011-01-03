@@ -1,5 +1,5 @@
 application: closure-kitchen
-version: 1
+version: 2
 runtime: python
 api_version: 1
 
@@ -11,6 +11,9 @@ handlers:
 - url: /closure-library
   static_dir: closure-library
   expiration: 24h
+
+- url: /docs/.*
+  script: docs.py
 
 - url: /.*
   script: main.py

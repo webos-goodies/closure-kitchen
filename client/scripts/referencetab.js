@@ -30,7 +30,7 @@ closurekitchen.ReferenceTab.prototype.iframe_;
  */
 closurekitchen.ReferenceTab.prototype.setContent = function(url) {
   if(this.iframe_) {
-	this.iframe_.src = 'http://closure-library.googlecode.com/svn/docs/' + url;
+	this.iframe_.src = 'docs/' + url;
   }
 };
 

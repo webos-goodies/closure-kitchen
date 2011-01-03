@@ -52,6 +52,8 @@ closurekitchen.Toolbar.prototype.searchCompletion_;
 closurekitchen.Toolbar.prototype.setSearchCompletion = function(data) {
   this.searchCompletion_ = new AutoComplete(
 	data, this.getChild(ActionID.SEARCH).getContentElement());
+  this.searchCompletion_.setAllowFreeSelect(true);
+  this.searchCompletion_.setAutoHilite(false);
 };
 
 /** @inheritDoc */

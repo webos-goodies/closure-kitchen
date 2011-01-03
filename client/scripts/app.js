@@ -742,7 +742,7 @@ closurekitchen.App.prototype.updatePreview_ = function(requires, jsCode, htmlCod
  */
 closurekitchen.App.prototype.loadReference_ = function() {
   closurekitchen.App.logger_.info('Load files/doc_json_index.js...');
-  goog.net.XhrIo.send('files/doc_json_index.js', goog.bind(this.loadReferenceComplete_, this));
+  goog.net.XhrIo.send('docs/doc_json_index.js', goog.bind(this.loadReferenceComplete_, this));
 };
 
 /**
