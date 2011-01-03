@@ -228,11 +228,11 @@ closurekitchen.EditorPane.prototype.updatePreview = function(html, js) {
 };
 
 /**
- * Search the specified text.
+ * Search api reference.
  * @param {string} searchText The search text.
  * @private
  */
-closurekitchen.EditorPane.prototype.search = function(searchText) {
+closurekitchen.EditorPane.prototype.showReference = function(searchText) {
   this.tabContents_[3].setContent(searchText);
   this.tabBar_.setSelectedTabIndex(3);
 };

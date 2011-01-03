@@ -1,9 +1,14 @@
 goog.provide('closurekitchen.Toolbar');
 goog.provide('closurekitchen.ToolbarRenderer');
+goog.provide('closurekitchen.AutoComplete');
+goog.provide('closurekitchen.AutoComplete.InputHandler');
 goog.require('goog.style');
 goog.require('goog.ui.Toolbar');
 goog.require('goog.ui.ToolbarSeparator');
-goog.require('goog.ui.AutoComplete.Basic');
+goog.require('goog.ui.AutoComplete');
+goog.require('goog.ui.AutoComplete.ArrayMatcher');
+goog.require('goog.ui.AutoComplete.InputHandler');
+goog.require('goog.ui.AutoComplete.Renderer');
 goog.require('closurekitchen.ActionID');
 goog.require('closurekitchen.ActionEvent');
 goog.require('closurekitchen.ComponentBuilder');
@@ -13,7 +18,6 @@ var Toolbar      = goog.ui.Toolbar;
 var Separator    = goog.ui.ToolbarSeparator;
 var ActionID     = closurekitchen.ActionID;
 var ActionEvent  = closurekitchen.ActionEvent;
-var AutoComplete = goog.ui.AutoComplete.Basic;
 
 /**
  * A toolbar for the editor pane.
@@ -40,7 +44,7 @@ goog.inherits(closurekitchen.Toolbar, Toolbar);
 
 /**
  * The auto-completion of the search field.
- * @type {goog.ui.AutoComplete.Basic}
+ * @type {closurekitchen.AutoComplete}
  * @private
  */
 closurekitchen.Toolbar.prototype.searchCompletion_;
@@ -50,7 +54,7 @@ closurekitchen.Toolbar.prototype.searchCompletion_;
  * @param {Array.<string>} data the auto-completion data.
  */
 closurekitchen.Toolbar.prototype.setSearchCompletion = function(data) {
-  this.searchCompletion_ = new AutoComplete(
+  this.searchCompletion_ = new closurekitchen.AutoComplete(
 	data, this.getChild(ActionID.SEARCH).getContentElement());
   this.searchCompletion_.setAllowFreeSelect(true);
   this.searchCompletion_.setAutoHilite(false);
@@ -88,5 +92,61 @@ closurekitchen.Toolbar.prototype.exitDocument = function() {
   }
   goog.base(this, 'exitDocument');
 }
+
+
+/**
+ * Factory class for building a basic autocomplete widget that autocompletes
+ * an inputbox or text area from a data array.
+ * @param {Array} data Data array.
+ * @param {Element} input Input element or text area.
+ * @param {boolean=} opt_multi Whether to allow multiple entries separated with
+ * semi-colons or commas.
+ * @param {boolean=} opt_useSimilar use similar matches. e.g. "gost" => "ghost".
+ * @constructor
+ * @extends {goog.ui.AutoComplete}
+ */
+closurekitchen.AutoComplete = function(data, input, opt_multi, opt_useSimilar) {
+  var matcher  = new goog.ui.AutoComplete.ArrayMatcher(data, !opt_useSimilar);
+  var renderer = new goog.ui.AutoComplete.Renderer();
+  var inputhandler =
+      new closurekitchen.AutoComplete.InputHandler(null, null, !!opt_multi);
+
+  goog.base(this, matcher, renderer, inputhandler);
+
+  inputhandler.attachAutoComplete(this);
+  inputhandler.attachInputs(input);
+};
+goog.inherits(closurekitchen.AutoComplete, goog.ui.AutoComplete);
+
+
+/**
+ * Class for managing the interaction between an auto-complete object and a
+ * text-input or textarea.
+ *
+ * @param {?string=} opt_separators Separators to split multiple entries.
+ * @param {?string=} opt_literals Characters used to delimit text literals.
+ * @param {?boolean=} opt_multi Whether to allow multiple entries
+ *     (Default: true).
+ * @param {?number=} opt_throttleTime Number of milliseconds to throttle
+ *     keyevents with (Default: 150). Use -1 to disable updates on typing. Note
+ *     that typing the separator will update autocomplete suggestions.
+ * @constructor
+ * @extends {goog.ui.AutoComplete.InputHandler}
+ */
+closurekitchen.AutoComplete.InputHandler = function(
+  opt_separators, opt_literals, opt_multi, opt_throttleTime) {
+  goog.base(this, opt_separators, opt_literals, opt_multi, opt_throttleTime);
+}
+goog.inherits(closurekitchen.AutoComplete.InputHandler, goog.ui.AutoComplete.InputHandler);
+
+/** @inheritDoc */
+closurekitchen.AutoComplete.InputHandler.prototype.getValue = function() {
+  return goog.base(this, 'getValue').replace(/^doc:/, '');
+};
+
+/** @inheritDoc */
+closurekitchen.AutoComplete.InputHandler.prototype.setValue = function(value) {
+  goog.base(this, 'setValue', 'doc:' + value);
+};
 
 });

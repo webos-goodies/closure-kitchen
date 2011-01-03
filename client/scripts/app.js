@@ -523,8 +523,9 @@ closurekitchen.App.prototype.onAction_ = function(e) {
   } else if(actionId == ActionID.CLEAR_CONSOLE) {
 	this.consolePane_.clear();
   } else if(actionId == ActionID.SEARCH) {
-	if(this.referenceMap_[data]) {
-	  this.editorPane_.search(this.referenceMap_[data]);
+	var match = /^doc:(.*)/.exec(data);
+	if(match && this.referenceMap_[match[1]]) {
+	  this.editorPane_.showReference(this.referenceMap_[match[1]]);
 	}
   } else if(actionId == ActionID.TAB_CHANGED) {
 	// nothing to do here. just update components.

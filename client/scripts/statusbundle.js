@@ -16,7 +16,7 @@ var ActionID = closurekitchen.ActionID;
 closurekitchen.StatusBundle = function(status) {
   this.appStatus_    = goog.object.clone(status);
   this.actionStatus_ = {};
-  this.build(status);
+  this.build();
 };
 
 /**
