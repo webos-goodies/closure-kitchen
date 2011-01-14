@@ -120,7 +120,7 @@ class CssOptimizer
   end
 
   def map_url(css)
-    css.gsub(/(\s)url\(\s*[\"\']?([^\"\'\)]+)[\"\']?\s*\)/u) do
+    css.gsub(/(\W)url\(\s*[\"\']?([^\"\'\)]+)[\"\']?\s*\)/u) do
       space, url = $1, $2.strip
       @css_url_map.each do |pattern, replace|
         if pattern === url

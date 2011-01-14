@@ -17,7 +17,7 @@ closurekitchen.i18n.msg.ja_JP = {
   'JavaScriut':    'JavaScript',
   'HTML':          'HTML',
   'Preview':       'プレビュー',
-  'Compiled Code': 'コンパイル後のソース',
+  'Reference':     'リファレンス',
 
   // Meta data of actions.
   'New Project':                      '新規プロジェクト',
@@ -48,11 +48,11 @@ closurekitchen.i18n.msg.ja_JP = {
   'Find Backward':                    '後方検索',
   'Find the text backward.':          'テキストを後方検索する。',
 
-  // ツリー表示
+  // Tree view.
   'Private projects': '個人のプロジェクト',
   'Sample projects':  'サンプル',
 
-  // 名前変更ダイアログ
+  // Rename dialog.
   'Project name':                       'プロジェクト名',
   'Please input the new project name.': 'プロジェクト名を入力してください。',
 

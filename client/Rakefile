@@ -49,7 +49,8 @@ OPTIMIZE_OPTIONS = {
     '--externs'           => EXTERNS,
     '--compilation_level' => 'ADVANCED_OPTIMIZATIONS'
   },
-  :css_url_map     => [[/^\.\.\/images\/tree\/(.+)/u, File.join(STATIC_DIR, 'images/\1')]]
+  :css_url_map     => [[/^\.\.\/images\/tree\/(.+)/u, File.join(STATIC_DIR, 'images/\1')],
+                       [/^\.\.\/images\/(.+)/u, File.join(STATIC_DIR, 'images/\1')]]
 }
 SERVER_JS_OPTS = OPTIMIZE_OPTIONS.merge( {
   :optimize    => true,

@@ -6,7 +6,6 @@ goog.require('goog.array');
 goog.require('goog.object');
 goog.require('goog.async.Delay');
 goog.require('goog.dom');
-goog.require('goog.dom.forms');
 goog.require('goog.dom.ViewportSizeMonitor');
 goog.require('goog.style');
 goog.require('goog.fx.dom.FadeInAndShow');
@@ -43,6 +42,7 @@ closurekitchen.App = function() {
   var startupInfo = window['startupInfo'];
   var pageUri     = goog.Uri.parse(window.location);
 
+  // Initialize properties.
   this.isModified_   = false;
   this.updating_     = false;
   this.eventHandler_ = new goog.events.EventHandler(this);
@@ -50,6 +50,7 @@ closurekitchen.App = function() {
   this.viewportSize_ = new goog.dom.ViewportSizeMonitor();
   this.splitDelay_   = new goog.async.Delay(this.onSplitDelayFired_, 1000, this);
 
+  // Initialize projects.
   Project.initialize(startupInfo['projects'], startupInfo['samples']);
 
   if(startupInfo['projectId'] && this.user_.isUser())
@@ -68,6 +69,7 @@ closurekitchen.App = function() {
 	goog.net.cookies.remove(closurekitchen.App.COOKIE_PROJECT_ID);
   }
 
+  // Build the main UI.
   this.treePane_    = new closurekitchen.TreePane();
   this.editorPane_  = new closurekitchen.EditorPane(this.currentProject_);
   this.consolePane_ = new closurekitchen.ConsolePane(pageUri);
@@ -91,6 +93,7 @@ closurekitchen.App = function() {
 
   this.updateComponents_();
 
+  // Listen UI events.
   goog.array.forEach(
 	[[closurekitchen.ActionEvent.EVENT_TYPE, this.onAction_],
 	 [goog.ui.Component.EventType.ACTION,    this.onAction_],
@@ -99,6 +102,7 @@ closurekitchen.App = function() {
 	  this.eventHandler_.listen(this.rootComponent_, item[0], item[1]);
 	}, this);
 
+  // Initialize keyboard shortcuts.
   this.shortcuts_ = new goog.ui.KeyboardShortcutHandler(window);
   this.shortcuts_.setAlwaysPreventDefault(true);
   this.shortcuts_.setAlwaysStopPropagation(true);
@@ -107,13 +111,16 @@ closurekitchen.App = function() {
   this.eventHandler_.listen(
 	this.shortcuts_, goog.ui.KeyboardShortcutHandler.EventType.SHORTCUT_TRIGGERED, this.onAction_);
 
+  // Fit the main UI to the browser window.
   this.eventHandler_.listen(
 	this.viewportSize_, goog.events.EventType.RESIZE, this.onResizeViewport_);
   this.onResizeViewport_();
   this.rootComponent_.finishInitialization();
 
+  // Confirm to discard unsaved changes on exit.
   window.onbeforeunload = goog.bind(this.onUnload_, this);
 
+  // Initialize the XHR indicator.
   var indicator  = goog.dom.getElement('xhr-indicator');
   var xhrManager = closurekitchen.Project.getXhrManager();
   this.fadeInIndicator_  = new goog.fx.dom.FadeInAndShow(indicator, 10);
@@ -122,8 +129,10 @@ closurekitchen.App = function() {
     listen(xhrManager, goog.net.EventType.READY,    this.onXhrReady_).
     listen(xhrManager, goog.net.EventType.COMPLETE, this.onXhrComplete_);
 
+  // Load the index of API reference.
   this.loadReference_();
 
+  // Show an attribution message and more.
   if(!this.user_.isUser()) {
 	var dialog = new goog.ui.Dialog();
 	dialog.setTitle(goog.getMsg('Attention'));
