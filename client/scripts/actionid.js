@@ -24,7 +24,8 @@ closurekitchen.ActionID = {
   TAB_CHANGED:             'TAB_CHANGED',
   SEARCH:                  'SEARCH',
   FIND_NEXT:               'FIND_NEXT',
-  FIND_PREV:               'FIND_PREV'
+  FIND_PREV:               'FIND_PREV',
+  ABOUT:                   'ABOUT'
 };
 
 /**
@@ -130,4 +131,10 @@ closurekitchen.ActionMetaData[closurekitchen.ActionID.FIND_PREV] = {
   cls:     'toolbar-icon toolbar-icon-up',
   content: goog.getMsg('Find Backward'),
   tooltip: goog.getMsg('Find the text backward.')
+};
+closurekitchen.ActionMetaData[closurekitchen.ActionID.ABOUT] = {
+  type:    closurekitchen.ActionType.ONE_SHOT,
+  cls:     'toolbar-icon toolbar-icon-about',
+  content: goog.getMsg('About'),
+  tooltip: goog.getMsg('About Closure Kitchen.')
 };

@@ -47,6 +47,8 @@ closurekitchen.i18n.msg.ja_JP = {
   'Find the text forward.':           'テキストを前方検索する。',
   'Find Backward':                    '後方検索',
   'Find the text backward.':          'テキストを後方検索する。',
+  'About':                            '情報',
+  'About Closure Kitchen':            'Closure Kitchen について',
 
   // Tree view.
   'Private projects': '個人のプロジェクト',
@@ -58,10 +60,12 @@ closurekitchen.i18n.msg.ja_JP = {
 
   // miscellaneous...
   'New project':              '新規プロジェクト',
-  'Attention':                'ご利用上の注意',
+  'Tutorial':                 'チュートリアル',
   'Failed to load "{$name}"': '"{$name}"の読み込みに失敗しました。',
   'The curent project is modified.\nDiscard anyway?': 'プロジェクトの変更を破棄しますか？',
-  'Are you sure to delete {$name}?': '{$name} を削除してよろしいですか？'
+  'Are you sure to delete {$name}?': '{$name} を削除してよろしいですか？',
+  'You can watch the tutorial anytime by clicking the "Tutorial" link above.':
+	'再度チュートリアルを見たいときは、ページ上部の「チュートリアル」をクリックしてください。'
 };
 
 /**

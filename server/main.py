@@ -244,6 +244,7 @@ class TopPageHandler(BaseHandler):
     user      = users.get_current_user()
     ck_pid    = None
     user_name = None
+    user_type = self.get_user_type(user)
     projects  = '{}'
     if user:
       ck_pid    = self.getCookie().get('ck_pid', None)
@@ -263,7 +264,8 @@ class TopPageHandler(BaseHandler):
       'login_url':  users.create_login_url(self.request.url),
       'logout_url': users.create_logout_url(self.request.url),
       'user_name':  user_name,
-      'user_type':  self.get_user_type(user),
+      'user_type':  user_type,
+      'fake_utype': self.request.get('user', user_type),
       'project_id': 'null',
       'samples':    self.fetch_samples(ck_pid),
       'projects':   projects }
@@ -491,6 +493,8 @@ class JsHandler(BaseHandler):
 
 class AdminHandler(BaseHandler):
   def get(self):
+    if not users.is_current_user_admin():
+      raise HttpError(404)
     command = self.request.get('cmd', '')
     if command == 'flush':
       memcache.flush_all();

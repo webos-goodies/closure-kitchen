@@ -41,6 +41,8 @@ closurekitchen.Toolbar = function(opt_domHelper) {
   this.addChild(builder.buildToolbarItem(ActionID.SEARCH, null, ActionID.SEARCH));
   this.addChild(builder.buildToolbarItem(ActionID.FIND_NEXT, null, ActionID.FIND_NEXT));
   this.addChild(builder.buildToolbarItem(ActionID.FIND_PREV, null, ActionID.FIND_PREV));
+  this.addChild(new Separator(null, opt_domHelper));
+  this.addChild(builder.buildToolbarItem(ActionID.ABOUT));
 };
 goog.inherits(closurekitchen.Toolbar, Toolbar);
 

@@ -33,6 +33,7 @@
 	<%= expand_css('style.css') %>
   </style>
   -->
+  <script src="https://ajax.googleapis.com/ajax/libs/swfobject/2.2/swfobject.js"></script>
 </head>
 <body>
   <h1 id="title">Closure Kitchen</h1>
@@ -41,35 +42,55 @@
   <div id="main"></div>
 
   <!-- ユーザー名（メールアドレス）とログアウトボタン -->
-  <!--[uncomment]
   <div id="user-info">
+	<!--[del]-->
+	<a href="#" id="tutorial-btn">チュートリアル</a>
+	<!--[/del]-->
+	<!--[uncomment]
 	{% if user_name %}
-	  {% ifequal user_type 'admin' %}
+	  {% ifequal fake_utype 'admin' %}
         <a href="/admin?cmd=flush">キャッシュクリア</a> |
       {% endifequal %}
-      <b>{{user_name|escape}}</b> | <a href="{{logout_url|escape}}">ログアウト</a>
+      <b>{{user_name|escape}}</b> |
+	  <a href="#" id="tutorial-btn">チュートリアル</a> |
+	  <a href="{{logout_url|escape}}">ログアウト</a>
 	{% else %}
+	  <a href="#" id="tutorial-btn">チュートリアル</a> |
       <a href="{{login_url|escape}}">ログイン</a>
 	{% endif %}
+	-->
   </div>
-  -->
 
   <!-- アクセスインジケータ -->
   <div id="xhr-indicator" style="display:none;">アクセス中</div>
 
   <div style="display:none">
-	<!-- ダイアログの内容 -->
-	<div id="caution-dialog">
-	  <div>
-		このサービスは実験的に公開しているものです。実用に耐える段階ではありませんので、ご了承の上でご利用ください。とくに以下の点にご留意ください。
+	<!-- チュートリアルダイアログの内容 -->
+	<div id="tutorial">
+	  <div id="tutorial-video">
+		You need Flash player 8+ and JavaScript enabled to view this video.
 	  </div>
-	  <ul>
-		<li>サービスは予告なく変更・停止・閉鎖することがあります。</li>
-		<li>保存したデータは予告なく削除されることがあります。</li>
-		<li>その他、このサービスに関するあらゆる損害について、作者は責任を負いません。自己の責任においてご利用ください。</li>
-	  </ul>
-	  <div style="font-size:;90%; color:gray">
-		このサービスは <a target="_blank" href="http://code.google.com/p/closure-library/">Closure Library</a> と <a target_"_blank" href="http://codemirror.net/">Code Mirror</a> を使って構築されています。ツールバー等のアイコンは <a target="_blank" href="http://www.famfamfam.com/lab/icons/silk/">FAMFAMFAM SILK ICONS</a> を利用させていただきました。それぞれの開発者・作者の方々に感謝いたします。
+	  <div class="tutorial-link">
+		<a target="_blank" href="http://www.youtube.com/watch?v=ZRSLvbF6N4w">YouTube で動画を見る</a>
+	  </div>
+	  <div><input type="checkbox" id="tutorial-show"> 次回もチュートリアルを表示する</div>
+	  <div style="clear:both;"></div>
+	</div>
+
+	<!-- 情報ダイアログの内容 -->
+	<div id="about">
+	  <div class="appname">Closure Kitchen</div>
+	  <div class="info">
+		Copyright 2010 by Chihiro Ito<br>
+		App version : 2
+	  </div>
+	  <div class="thanks">
+		このサービスは以下のオープンソースソフトウェアや画像等を使用して開発しました。作者の方々に感謝いたします。
+		<ul>
+		  <li><a target="_blank" href="http://code.google.com/p/closure-library/">Closure Library</a></li>
+		  <li><a target="_blank" href="http://codemirror.net/">Code Mirror</a></li>
+		  <li><a target="_blank" href="http://www.famfamfam.com/lab/icons/silk/">FAMFAMFAM SILK ICONS</a></li>
+		</ul>
 	  </div>
 	</div>
   </div>

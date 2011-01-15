@@ -56,15 +56,10 @@ closurekitchen.App = function() {
   if(startupInfo['projectId'] && this.user_.isUser())
 	this.currentProject_ = Project.findById(startupInfo['projectId']);
   if(!this.currentProject_) {
-	var values = {};
-	try{
-	  if(window.localStorage) {
-		values['j'] = localStorage.getItem(closurekitchen.App.StorageKey.JS);
-		values['h'] = localStorage.getItem(closurekitchen.App.StorageKey.HTML);
-	  }
-	} catch(e) {
-	  closurekitchen.App.logger_.severe('Failed to fetch the locally saved project.', e);
-	}
+	var values = {
+	  'j': closurekitchen.App.fetchLocalStorage(closurekitchen.App.StorageKey.JS),
+	  'h': closurekitchen.App.fetchLocalStorage(closurekitchen.App.StorageKey.HTML)
+	};
 	this.currentProject_ = new Project(Project.Type.PRIVATE, values);
 	goog.net.cookies.remove(closurekitchen.App.COOKIE_PROJECT_ID);
   }
@@ -74,17 +69,12 @@ closurekitchen.App = function() {
   this.editorPane_  = new closurekitchen.EditorPane(this.currentProject_);
   this.consolePane_ = new closurekitchen.ConsolePane(pageUri);
 
-  var splitPos = { hpos: 0, vpos: 0 };
-  try{
-	if(window.localStorage) {
-	  splitPos.hpos =
-		goog.string.toNumber(localStorage.getItem(closurekitchen.App.StorageKey.HPOS) || '');
-	  splitPos.vpos =
-		goog.string.toNumber(localStorage.getItem(closurekitchen.App.StorageKey.VPOS) || '');
-	}
-  } catch(e) {
-	closurekitchen.App.logger_.severe('Failed to fetch the locally saved settings.', e);
-  }
+  var splitPos = {
+	hpos: goog.string.toNumber(
+	  closurekitchen.App.fetchLocalStorage(closurekitchen.App.StorageKey.HPOS) || '0'),
+	vpos: goog.string.toNumber(
+	  closurekitchen.App.fetchLocalStorage(closurekitchen.App.StorageKey.VPOS) || '0')
+  };
   this.rootComponent_ = new closurekitchen.ThreePane(
 	this.treePane_, this.editorPane_, this.consolePane_, this.computeRootSize_(), splitPos);
   this.rootComponent_.render(goog.dom.getElement('main'));
@@ -133,13 +123,14 @@ closurekitchen.App = function() {
   this.loadReference_();
 
   // Show an attribution message and more.
-  if(!this.user_.isUser()) {
-	var dialog = new goog.ui.Dialog();
-	dialog.setTitle(goog.getMsg('Attention'));
-	dialog.setButtonSet(goog.ui.Dialog.ButtonSet.OK);
-	goog.dom.appendChild(dialog.getContentElement(), goog.dom.getElement('caution-dialog'));
-	dialog.setVisible(true);
+  if(closurekitchen.App.fetchLocalStorage(closurekitchen.App.StorageKey.TUTO) != 'false') {
+	goog.dom.getElement('tutorial-show').checked = true;
+	this.showTutorial_();
   }
+  this.eventHandler_.listen(
+	goog.dom.getElement('tutorial-btn'),
+	goog.events.EventType.CLICK,
+	this.onShowTutorial_);
 };
 goog.addSingletonGetter(closurekitchen.App);
 
@@ -166,7 +157,8 @@ closurekitchen.App.StorageKey = {
   JS:   'closure_kitchen_js',
   HTML: 'closure_kitchen_html',
   HPOS: 'closure_kitchen_hpos',
-  VPOS: 'closure_kitchen_vpos'
+  VPOS: 'closure_kitchen_vpos',
+  TUTO: 'show_tutorial'
 };
 
 /**
@@ -275,11 +267,62 @@ closurekitchen.App.prototype.fadeInIndicator_;
 closurekitchen.App.prototype.fadeOutIndicator_;
 
 /**
- * The map between class / script name and its reference page.
+ * A map between class / script name and its reference page.
  * @type {Object.<string, string>}
  * @private
  */
 closurekitchen.App.prototype.referenceMap_ = {};
+
+/**
+ * A dialog to show about Closure Kitchen.
+ * @type {goog.ui.Dialog}
+ * @private
+ */
+closurekitchen.App.prototype.aboutDialog_;
+
+/**
+ * A dialog to show tutorial movie.
+ * @type {goog.ui.Dialog}
+ * @private
+ */
+closurekitchen.App.prototype.tutorialDialog_;
+
+/**
+ * Fetch a value of the specified key from HTML5 LocalStorage.
+ * @param {string} key The string key.
+ * @return {*} The value of the key.
+ */
+closurekitchen.App.fetchLocalStorage = function(key) {
+  try {
+	if(window.localStorage) {
+	  return localStorage.getItem(key);
+	} else {
+	  closurekitchen.App.logger_.info('HTML5 LocalStorage is not available.');
+	}
+  } catch(e) {
+	closurekitchen.App.logger_.severe('Failed to fetch ' + key + ' from HTML5 LocalStorage.', e);
+  }
+  return null;
+};
+
+/**
+ * Store the value into HTML5 LocalStorage.
+ * @param {string} key The string key.
+ * @param {string} value The value to store.
+ */
+closurekitchen.App.storeLocalStorage = function(key, value) {
+  try {
+	if(window.localStorage) {
+	  localStorage.setItem(key, value);
+	  closurekitchen.App.logger_.info(
+		'Store LocalStorage : ' + key + ' = ' + goog.string.truncate(value, 32));
+	} else {
+	  closurekitchen.App.logger_.info('HTML5 LocalStorage is not available.');
+	}
+  } catch(e) {
+	closurekitchen.App.logger_.severe('Failed to store ' + key + ' into HTML5 LocalStorage.', e);
+  }
+};
 
 /**
  * Save the project information into the local storage.
@@ -287,23 +330,17 @@ closurekitchen.App.prototype.referenceMap_ = {};
  * @private
  */
 closurekitchen.App.prototype.saveProjectLocally_ = function(project) {
-  try {
-	if(project.getId()) {
-	  goog.net.cookies.set(closurekitchen.App.COOKIE_PROJECT_ID, project.getId(), 60*60*24*365);
-	  closurekitchen.App.logger_.info(
-		'Set cookie ' + closurekitchen.App.COOKIE_PROJECT_ID + ' to ' + project.getId() + '.');
-	} else {
-	  goog.net.cookies.remove(closurekitchen.App.COOKIE_PROJECT_ID);
-	  closurekitchen.App.logger_.info(
-		'Remove cookie ' + closurekitchen.App.COOKIE_PROJECT_ID + '.');
-	}
-	if(window.localStorage) {
-	  localStorage.setItem(closurekitchen.App.StorageKey.JS,   project.getJsCode());
-	  localStorage.setItem(closurekitchen.App.StorageKey.HTML, project.getHtmlCode());
-	}
-  } catch(e) {
-	closurekitchen.App.logger_.severe('Failed to save the project locally.', e);
+  if(project.getId()) {
+	goog.net.cookies.set(closurekitchen.App.COOKIE_PROJECT_ID, project.getId(), 60*60*24*365);
+	closurekitchen.App.logger_.info(
+	  'Set cookie ' + closurekitchen.App.COOKIE_PROJECT_ID + ' to ' + project.getId() + '.');
+  } else {
+	goog.net.cookies.remove(closurekitchen.App.COOKIE_PROJECT_ID);
+	closurekitchen.App.logger_.info(
+	  'Remove cookie ' + closurekitchen.App.COOKIE_PROJECT_ID + '.');
   }
+  closurekitchen.App.storeLocalStorage(closurekitchen.App.StorageKey.JS,   project.getJsCode());
+  closurekitchen.App.storeLocalStorage(closurekitchen.App.StorageKey.HTML, project.getHtmlCode());
 };
 
 /**
@@ -421,13 +458,9 @@ closurekitchen.App.prototype.onChangeSplit_ = function(e) {
  * @private
  */
 closurekitchen.App.prototype.onSplitDelayFired_ = function() {
-  if(window.localStorage) {
-	var pos = this.rootComponent_.exportSettings();
-	localStorage.setItem(closurekitchen.App.StorageKey.HPOS, pos.hpos);
-	localStorage.setItem(closurekitchen.App.StorageKey.VPOS, pos.vpos);
-	closurekitchen.App.logger_.info(
-	  goog.string.subs('Save the split positions : hpos=%s, vpos=%s', pos.hpos, pos.vpos));
-  }
+  var pos = this.rootComponent_.exportSettings();
+  closurekitchen.App.storeLocalStorage(closurekitchen.App.StorageKey.HPOS, pos.hpos);
+  closurekitchen.App.storeLocalStorage(closurekitchen.App.StorageKey.VPOS, pos.vpos);
 };
 
 /**
@@ -543,6 +576,8 @@ closurekitchen.App.prototype.onAction_ = function(e) {
 	this.editorPane_.findNext(data);
   } else if(actionId == ActionID.FIND_PREV) {
 	this.editorPane_.findPrevious(data);
+  } else if(actionId == ActionID.ABOUT) {
+	this.showAbout_();
   } else if(actionId == ActionID.TAB_CHANGED) {
 	// nothing to do here. just update components.
   } else {
@@ -798,6 +833,94 @@ closurekitchen.App.prototype.parseReferenceIndex_ = function(data, separator, pa
 	}
   }, this);
 };
+
+/**
+ * Show the about dialog.
+ * @private
+ */
+closurekitchen.App.prototype.showAbout_ = function() {
+  if(!this.aboutDialog_) {
+	this.aboutDialog_ = new goog.ui.Dialog();
+	this.aboutDialog_.setTitle(goog.getMsg('About Closure Kitchen'));
+	this.aboutDialog_.setButtonSet(goog.ui.Dialog.ButtonSet.OK);
+	goog.dom.appendChild(
+	  this.aboutDialog_.getContentElement(), goog.dom.getElement('about'));
+	this.aboutDialog_.setVisible(true);
+  } else if(!this.aboutDialog_.isVisible()) {
+	this.aboutDialog_.setVisible(true);
+  }
+};
+
+/**
+ * Show the tutorial dialog.
+ * @private
+ */
+closurekitchen.App.prototype.showTutorial_ = function() {
+  if(!this.tutorialDialog_) {
+	this.tutorialDialog_ = new goog.ui.Dialog();
+	this.tutorialDialog_.setTitle(goog.getMsg('Tutorial'));
+	this.tutorialDialog_.setButtonSet(goog.ui.Dialog.ButtonSet.OK);
+	this.eventHandler_.listen(
+	  this.tutorialDialog_, goog.ui.Dialog.EventType.SELECT, this.onCloseTutorial_);
+	goog.dom.appendChild(
+	  this.tutorialDialog_.getContentElement(), goog.dom.getElement('tutorial'));
+	this.tutorialDialog_.setVisible(true);
+	var params = { 'allowScriptAccess': "always" };
+	var atts   = { 'id': "tutorial-player" };
+	window['swfobject']['embedSWF']("http://www.youtube.com/v/ZRSLvbF6N4w?enablejsapi=1&version=3&playerapiid=tutorial", "tutorial-video", "640", "390", "8", null, null, params, atts);
+  } else if(!this.tutorialDialog_.isVisible()) {
+	this.tutorialDialog_.setVisible(true);
+  }
+};
+
+/**
+ * This method is called when the tutorial link is clicked.
+ * @param {goog.events.Event} e The event object.
+ * @private
+ */
+closurekitchen.App.prototype.onShowTutorial_ = function(e) {
+  e.preventDefault();
+  this.showTutorial_();
+};
+
+/**
+ * This method is called when the tutorial dialog is closed.
+ * @param {goog.ui.Dialog.Event} e The event object.
+ * @private
+ */
+closurekitchen.App.prototype.onCloseTutorial_ = function(e) {
+  var player = goog.dom.getElement('tutorial-player');
+  if(player) {
+	player['stopVideo']();
+	closurekitchen.App.logger_.info('Stop the tutorial video.');
+  }
+  var oldShow =
+	closurekitchen.App.fetchLocalStorage(closurekitchen.App.StorageKey.TUTO) != 'false';
+  var newShow = goog.dom.getElement('tutorial-show').checked ? true : false;
+  if(!newShow && oldShow != newShow) {
+	alert(goog.getMsg(
+	  'You can watch the tutorial anytime by clicking the "Tutorial" link above.'));
+  }
+  closurekitchen.App.storeLocalStorage(
+	closurekitchen.App.StorageKey.TUTO, newShow ? 'true' : 'false');
+};
+
+/**
+ * This function is called when the tutorial video is ready to playback.
+ * @param {string} playerid The id of the player control.
+ */
+closurekitchen.App.onYouTubePlayerReady = function(playerid) {
+  closurekitchen.App.logger_.info('The tutorial video is ready to playback.');
+  var app = closurekitchen.App.getInstance();
+  if(app.tutorialDialog_ && app.tutorialDialog_.isVisible()) {
+	var player = goog.dom.getElement('tutorial-player');
+	if(player) {
+	  player['playVideo']();
+	  closurekitchen.App.logger_.info('Begin to playback the tutorial video.');
+	}
+  }
+};
+goog.exportSymbol('onYouTubePlayerReady', closurekitchen.App.onYouTubePlayerReady);
 
 
 goog.debug.Console.autoInstall();

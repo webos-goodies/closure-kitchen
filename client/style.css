@@ -121,11 +121,19 @@ body { overflow: hidden; margin: 4px; }
 .toolbar-icon-undo   { background-position: -80px; }
 .toolbar-icon-redo   { background-position: -96px; }
 .toolbar-icon-reload { background-position: -112px; }
-.toolbar-icon-info   { background-position: -128px; }
+.toolbar-icon-about  { background-position: -128px; }
 .toolbar-icon-up     { background-position: -144px; }
 .toolbar-icon-down   { background-position: -160px; }
 
-/* 注意点ダイアログ */
-#caution-dialog   { font-size: 12px; width: 40em; line-height: 1.5; }
-#caution-dialog a { color: gray; }
-.modal-dialog-buttons { text-align: right; padding-right: 16px; }
+/* ダイアログ */
+.modal-dialog-buttons { text-align:right; }
+
+/* チュートリアル */
+#tutorial-video { width:640px; height:390px; overflow:hidden; }
+.tutorial-link  { float:right; }
+
+/* Closure Kitchen について */
+#about { width: 30em; }
+#about .appname { font-size:150%; font-weight:bold; }
+#about .info { margin:0.5em 1em 1em 1em; }
+#about .thanks { margin:1em 1em 1em 1em; }
