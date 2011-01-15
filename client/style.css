@@ -129,7 +129,8 @@ body { overflow: hidden; margin: 4px; }
 .modal-dialog-buttons { text-align:right; }
 
 /* チュートリアル */
-#tutorial-video { width:640px; height:390px; overflow:hidden; }
+#tutorial       { width:640px; }
+#tutorial-video { width:640px; height:390px; }
 .tutorial-link  { float:right; }
 
 /* Closure Kitchen について */

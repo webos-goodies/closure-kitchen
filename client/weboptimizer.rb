@@ -221,7 +221,9 @@ class HtmlOptimizer
   def optimize_html(html)
     html = html.dup
     if @optimize
-      html.gsub!(/<\!--.*?-->/mu, '')
+      html.gsub!(/<\!--(.*?)-->/mu) do |text|
+        /\A\[if\s.*<\!\[endif\]\z/mu === $1 ? text : ''
+      end
       html.gsub!(/[~^]/u) {|c| c == '~' ? '^T~' : '^E~' }
       preserved = []
       if @pre_tag_regex

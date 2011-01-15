@@ -68,12 +68,17 @@
 	<!-- チュートリアルダイアログの内容 -->
 	<div id="tutorial">
 	  <div id="tutorial-video">
-		You need Flash player 8+ and JavaScript enabled to view this video.
+		<div id="tutorial-player">
+		  You need Flash player 8+ and JavaScript enabled to view this video.
+		</div>
 	  </div>
 	  <div class="tutorial-link">
 		<a target="_blank" href="http://www.youtube.com/watch?v=ZRSLvbF6N4w">YouTube で動画を見る</a>
 	  </div>
 	  <div><input type="checkbox" id="tutorial-show"> 次回もチュートリアルを表示する</div>
+	  <!--[if lte IE 7]>
+		  <div style="color:red;">IE7以前では上記のチェックボックスは機能しません。ご了承ください。</div>
+	  <![endif]-->
 	  <div style="clear:both;"></div>
 	</div>
 

@@ -866,8 +866,7 @@ closurekitchen.App.prototype.showTutorial_ = function() {
 	  this.tutorialDialog_.getContentElement(), goog.dom.getElement('tutorial'));
 	this.tutorialDialog_.setVisible(true);
 	var params = { 'allowScriptAccess': "always" };
-	var atts   = { 'id': "tutorial-player" };
-	window['swfobject']['embedSWF']("http://www.youtube.com/v/ZRSLvbF6N4w?enablejsapi=1&version=3&playerapiid=tutorial", "tutorial-video", "640", "390", "8", null, null, params, atts);
+	window['swfobject']['embedSWF']("http://www.youtube.com/v/ZRSLvbF6N4w?enablejsapi=1&version=3&playerapiid=tutorial", "tutorial-player", "640", "390", "8", null, null, params);
   } else if(!this.tutorialDialog_.isVisible()) {
 	this.tutorialDialog_.setVisible(true);
   }
@@ -890,7 +889,7 @@ closurekitchen.App.prototype.onShowTutorial_ = function(e) {
  */
 closurekitchen.App.prototype.onCloseTutorial_ = function(e) {
   var player = goog.dom.getElement('tutorial-player');
-  if(player) {
+  if(player && goog.isFunction(player['stopVideo'])) {
 	player['stopVideo']();
 	closurekitchen.App.logger_.info('Stop the tutorial video.');
   }
@@ -914,7 +913,7 @@ closurekitchen.App.onYouTubePlayerReady = function(playerid) {
   var app = closurekitchen.App.getInstance();
   if(app.tutorialDialog_ && app.tutorialDialog_.isVisible()) {
 	var player = goog.dom.getElement('tutorial-player');
-	if(player) {
+	if(player && goog.isFunction(player['playVideo'])) {
 	  player['playVideo']();
 	  closurekitchen.App.logger_.info('Begin to playback the tutorial video.');
 	}
