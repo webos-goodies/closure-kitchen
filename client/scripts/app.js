@@ -173,6 +173,18 @@ closurekitchen.App.AdditionalJsCode_ = [
   "      'level': r.getLevel(), 'msg': r.getMessage(), 'loggerName': r.getLoggerName(), 'time': r.getMillis(),'exception':r.getException(),'exceptionText':r.getExceptionText() });",
   "  }",
   "  goog.debug.LogManager.getRoot().addHandler(logProxy);",
+  "  var eh = new goog.debug.ErrorHandler(function(e) {",
+  "    goog.debug.LogManager.getRoot().severe('Exception in preview', e);",
+  "  });",
+  "  eh.protectWindowSetInterval();",
+  "  eh.protectWindowSetTimeout();",
+  "  if(goog.events && goog.isFunction(goog.events.protectBrowserEventEntryPoint)) {",
+  "    goog.events.protectBrowserEventEntryPoint(eh);",
+  "  }",
+  "  if(goog.net && goog.net.XhrIo &&",
+  "     goog.isFunction(goog.net.XhrIo.protectEntryPoints)) {",
+  "    goog.net.XhrIo.protectEntryPoints(eh);",
+  "  }",
   "})();"].join('\n');
 
 /**
@@ -407,8 +419,8 @@ closurekitchen.App.prototype.openProjectFailed_ = function(project) {
 	this.saveProjectLocally_(this.currentProject_);
 	closurekitchen.ConsolePane.addLog(
 	  goog.debug.Logger.Level.SEVERE,
-	  goog.getMsg('Failed to load "{$name}"', { 'name': project.getName()||'' }),
-	  'error');
+	  closurekitchen.i18n.getMsg('Failed to load "{$name}"', { 'name': project.getName()||'' }),
+      'error');
   }
 };
 
@@ -419,7 +431,7 @@ closurekitchen.App.prototype.openProjectFailed_ = function(project) {
  */
 closurekitchen.App.prototype.confirmToClose_ = function() {
   return (!this.isModified_ ||
-		  confirm(goog.getMsg('The curent project is modified.\nDiscard anyway?')));
+		  confirm(closurekitchen.i18n.getMsg('The curent project is modified.\nDiscard anyway?')));
 };
 
 /**
@@ -473,7 +485,7 @@ closurekitchen.App.prototype.onUnload_ = function(e) {
 	this.editorPane_.exportToProject(this.currentProject_);
 	this.saveProjectLocally_(this.currentProject_);
   } else if(this.isModified_) {
-	var msg       = goog.getMsg('The curent project is modified.\nDiscard anyway?');
+	var msg       = closurekitchen.i18n.getMsg('The curent project is modified.\nDiscard anyway?');
 	e.returnValue = msg;
 	return msg
   }
@@ -558,7 +570,7 @@ closurekitchen.App.prototype.onAction_ = function(e) {
   } else if(actionId == ActionID.RENAME_CURRENT_PROJECT) {
 	this.actionRenameCurrentProject_();
   } else if(actionId == ActionID.PUBLISH_CURRENT_PROJECT) {
-	if(confirm(goog.getMsg('Are you sure to publish this project?'))) {
+	if(confirm(closurekitchen.i18n.getMsg('Are you sure to publish this project?'))) {
 	  this.actionPublishCurrentProject();
 	}
   } else if(actionId == ActionID.UPDATE_PREVIEW) {
@@ -652,7 +664,7 @@ closurekitchen.App.prototype.onRenameProjectCompleted_ = function(project) {
 closurekitchen.App.prototype.actionDeleteProject_ = function(projectId) {
   var project = projectId && Project.findById(projectId);
   goog.asserts.assert(project, 'DELETE_PROJECT action invoked without a project id.');
-  if(confirm(goog.getMsg('Are you sure to delete {$name}?', { 'name': project.getName() }))) {
+  if(confirm(closurekitchen.i18n.getMsg('Are you sure to delete {$name}?', { 'name': project.getName() }))) {
 	if(this.currentProject_.getId() == projectId) {
 	  this.openProject_(new Project(Project.Type.PRIVATE));
 	}
@@ -841,7 +853,7 @@ closurekitchen.App.prototype.parseReferenceIndex_ = function(data, separator, pa
 closurekitchen.App.prototype.showAbout_ = function() {
   if(!this.aboutDialog_) {
 	this.aboutDialog_ = new goog.ui.Dialog();
-	this.aboutDialog_.setTitle(goog.getMsg('About Closure Kitchen'));
+	this.aboutDialog_.setTitle(closurekitchen.i18n.getMsg('About Closure Kitchen'));
 	this.aboutDialog_.setButtonSet(goog.ui.Dialog.ButtonSet.OK);
 	goog.dom.appendChild(
 	  this.aboutDialog_.getContentElement(), goog.dom.getElement('about'));
@@ -858,7 +870,7 @@ closurekitchen.App.prototype.showAbout_ = function() {
 closurekitchen.App.prototype.showTutorial_ = function() {
   if(!this.tutorialDialog_) {
 	this.tutorialDialog_ = new goog.ui.Dialog();
-	this.tutorialDialog_.setTitle(goog.getMsg('Tutorial'));
+	this.tutorialDialog_.setTitle(closurekitchen.i18n.getMsg('Tutorial'));
 	this.tutorialDialog_.setButtonSet(goog.ui.Dialog.ButtonSet.OK);
 	this.eventHandler_.listen(
 	  this.tutorialDialog_, goog.ui.Dialog.EventType.SELECT, this.onCloseTutorial_);
@@ -897,7 +909,7 @@ closurekitchen.App.prototype.onCloseTutorial_ = function(e) {
 	closurekitchen.App.fetchLocalStorage(closurekitchen.App.StorageKey.TUTO) != 'false';
   var newShow = goog.dom.getElement('tutorial-show').checked ? true : false;
   if(!newShow && oldShow != newShow) {
-	alert(goog.getMsg(
+	alert(closurekitchen.i18n.getMsg(
 	  'You can watch the tutorial anytime by clicking the "Tutorial" link above.'));
   }
   closurekitchen.App.storeLocalStorage(

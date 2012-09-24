@@ -185,7 +185,7 @@ closurekitchen.TreePane.prototype.addPrivateProject_ = function(project) {
 
   if(!this.privateFolder_) {
 	this.privateFolder_ = new goog.ui.tree.TreeNode(
-	  goog.getMsg('Private projects'),
+	  closurekitchen.i18n.getMsg('Private projects'),
 	  this.treeControl_.getConfig(),
 	  this.getDomHelper());
 	this.privateFolder_.expand();
@@ -211,7 +211,7 @@ closurekitchen.TreePane.prototype.addPublicProject_ = function(project) {
 
   if(!this.publicFolder_) {
 	this.publicFolder_ = new goog.ui.tree.TreeNode(
-	  goog.getMsg('Sample projects'),
+	  closurekitchen.i18n.getMsg('Sample projects'),
 	  this.treeControl_.getConfig(),
 	  this.getDomHelper());
 	this.publicFolder_.expand();

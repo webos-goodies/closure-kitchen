@@ -11,6 +11,6 @@ goog.require('closurekitchen.CodeMirrorTab');
  */
 closurekitchen.HtmlEditorTab = function(code, opt_domHelper) {
   goog.base(this, closurekitchen.CodeMirrorTab.Language.HTML,
-			goog.getMsg('HTML'), code, opt_domHelper);
+			closurekitchen.i18n.getMsg('HTML'), code, opt_domHelper);
 };
 goog.inherits(closurekitchen.HtmlEditorTab, closurekitchen.CodeMirrorTab);

@@ -138,7 +138,7 @@ closurekitchen.EditorPane.prototype.tabContents_;
  * @private
  */
 closurekitchen.EditorPane.prototype.getDisplayProjectName = function() {
-  return this.projectName_ || goog.getMsg('New project');
+  return this.projectName_ || closurekitchen.i18n.getMsg('New project');
 };
 
 /**

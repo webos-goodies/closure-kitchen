@@ -86,7 +86,7 @@ if(goog.LOCALE == 'ja' || true) {
  * @param {Object=} opt_values Map of place holder name to value.
  * @return {string} message with placeholders filled.
  */
-goog.getMsg = function(str, opt_values) {
+closurekitchen.i18n.getMsg = function(str, opt_values) {
   str = closurekitchen.i18n.msg.current[str] || str;
   var values = opt_values || {};
   for (var key in values) {

@@ -12,7 +12,7 @@ goog.require('goog.style');
  * @constructor
  */
 closurekitchen.ReferenceTab = function(opt_domHelper) {
-  goog.base(this, goog.getMsg('Reference'), opt_domHelper);
+  goog.base(this, closurekitchen.i18n.getMsg('Reference'), opt_domHelper);
   this.iframe_ = null;
 };
 goog.inherits(closurekitchen.ReferenceTab, closurekitchen.AbstractEditorTab);

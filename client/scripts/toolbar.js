@@ -5,10 +5,10 @@ goog.provide('closurekitchen.AutoComplete.InputHandler');
 goog.require('goog.style');
 goog.require('goog.ui.Toolbar');
 goog.require('goog.ui.ToolbarSeparator');
-goog.require('goog.ui.AutoComplete');
-goog.require('goog.ui.AutoComplete.ArrayMatcher');
-goog.require('goog.ui.AutoComplete.InputHandler');
-goog.require('goog.ui.AutoComplete.Renderer');
+goog.require('goog.ui.ac.AutoComplete');
+goog.require('goog.ui.ac.ArrayMatcher');
+goog.require('goog.ui.ac.InputHandler');
+goog.require('goog.ui.ac.Renderer');
 goog.require('closurekitchen.ActionID');
 goog.require('closurekitchen.ActionEvent');
 goog.require('closurekitchen.ComponentBuilder');
@@ -129,11 +129,11 @@ closurekitchen.Toolbar.prototype.exitDocument = function() {
  * semi-colons or commas.
  * @param {boolean=} opt_useSimilar use similar matches. e.g. "gost" => "ghost".
  * @constructor
- * @extends {goog.ui.AutoComplete}
+ * @extends {goog.ui.ac.AutoComplete}
  */
 closurekitchen.AutoComplete = function(data, input, opt_multi, opt_useSimilar) {
-  var matcher  = new goog.ui.AutoComplete.ArrayMatcher(data, !opt_useSimilar);
-  var renderer = new goog.ui.AutoComplete.Renderer();
+  var matcher  = new goog.ui.ac.ArrayMatcher(data, !opt_useSimilar);
+  var renderer = new goog.ui.ac.Renderer();
   var inputhandler =
       new closurekitchen.AutoComplete.InputHandler(null, null, !!opt_multi);
 
@@ -142,7 +142,7 @@ closurekitchen.AutoComplete = function(data, input, opt_multi, opt_useSimilar) {
   inputhandler.attachAutoComplete(this);
   inputhandler.attachInputs(input);
 };
-goog.inherits(closurekitchen.AutoComplete, goog.ui.AutoComplete);
+goog.inherits(closurekitchen.AutoComplete, goog.ui.ac.AutoComplete);
 
 
 /**
@@ -157,13 +157,13 @@ goog.inherits(closurekitchen.AutoComplete, goog.ui.AutoComplete);
  *     keyevents with (Default: 150). Use -1 to disable updates on typing. Note
  *     that typing the separator will update autocomplete suggestions.
  * @constructor
- * @extends {goog.ui.AutoComplete.InputHandler}
+ * @extends {goog.ui.ac.InputHandler}
  */
 closurekitchen.AutoComplete.InputHandler = function(
   opt_separators, opt_literals, opt_multi, opt_throttleTime) {
   goog.base(this, opt_separators, opt_literals, opt_multi, opt_throttleTime);
 }
-goog.inherits(closurekitchen.AutoComplete.InputHandler, goog.ui.AutoComplete.InputHandler);
+goog.inherits(closurekitchen.AutoComplete.InputHandler, goog.ui.ac.InputHandler);
 
 /** @inheritDoc */
 closurekitchen.AutoComplete.InputHandler.prototype.getValue = function() {

@@ -59,6 +59,7 @@ class ClosureBuilder(object):
       self.load_file('closurejs/closure/goog/base.js')
       self.load('goog.debug.Logger')
       self.load('goog.debug.LogManager')
+      self.load('goog.debug.ErrorHandler')
       for cname in requires:
         self.load(cname)
       cache = {

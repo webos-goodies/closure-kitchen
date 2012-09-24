@@ -14,7 +14,7 @@ goog.require('closurekitchen.ConsolePane');
  * @param {goog.dom.domHelper=} opt_domHelper The goog.dom.DomHelper instance.
  */
 closurekitchen.PreviewTab = function(opt_domHelper) {
-  goog.base(this, goog.getMsg('Preview'), opt_domHelper);
+  goog.base(this, closurekitchen.i18n.getMsg('Preview'), opt_domHelper);
   this.iframe_ = null;
 };
 goog.inherits(closurekitchen.PreviewTab, closurekitchen.AbstractEditorTab);

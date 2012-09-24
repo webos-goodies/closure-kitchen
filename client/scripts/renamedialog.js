@@ -17,8 +17,8 @@ var Prompt = goog.ui.Prompt;
 closurekitchen.RenameDialog = function(opt_domHelper) {
   goog.base(
 	this,
-	goog.getMsg('Project name'),
-	goog.getMsg('Please input the new project name.'),
+	closurekitchen.i18n.getMsg('Project name'),
+	closurekitchen.i18n.getMsg('Please input the new project name.'),
 	goog.bind(this.onDialogClose_, this),
 	'', null, false, opt_domHelper);
   this.project_      = null;
