@@ -7,6 +7,7 @@ import traceback
 import urllib
 import logging
 import Cookie
+import json
 
 from google.appengine.api import users
 from google.appengine.api import urlfetch
@@ -15,7 +16,6 @@ from google.appengine.ext import db
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp import util
 from google.appengine.ext.webapp import template
-from django.utils import simplejson
 
 # Closure Library の JavaScript ファイルの依存関係を読み込む
 execfile('deps.py')
@@ -44,7 +44,7 @@ class ClosureBuilder(object):
     cachekey     = self.__class__.MEMCACHE_PREFIX + hex(requires_str.__hash__())
     cache        = memcache.get(cachekey)
     if cache is not None:
-      cache = simplejson.loads(cache)
+      cache = json.loads(cache)
     else:
       logging.info('Required modules is not cached.')
       cache = {}
@@ -66,7 +66,7 @@ class ClosureBuilder(object):
         'requires': requires_str,
         'code':     self.get_code(),
         'errors':   self.get_errors() }
-      memcache.set(cachekey, simplejson.dumps(cache))
+      memcache.set(cachekey, json.dumps(cache))
 
   def load(self, cname):
     if cname in self.read:
@@ -101,16 +101,16 @@ class UserData(db.Model):
   last_access = db.DateTimeProperty(auto_now=True)
 
   def get_projects(self):
-    return simplejson.loads(self.projects)
+    return json.loads(self.projects)
 
   def set_projects(self, projects):
-    self.projects = simplejson.dumps(projects)
+    self.projects = json.dumps(projects)
 
   def set_project(self, name, project):
     obj      = self.get_projects()
     key      = project.project_id()
     obj[key] = { 'n': name }
-    self.projects = simplejson.dumps(obj)
+    self.projects = json.dumps(obj)
     return key
 
   def id_or_name(self):
@@ -254,13 +254,13 @@ class TopPageHandler(BaseHandler):
       user_name = user.email()
       projects  = user_data.projects or '{}'
       if ck_pid and ck_pid[0] == Project.PREFIX_PRIVATE:
-        entries = simplejson.loads(projects)
+        entries = json.loads(projects)
         entry   = entries.get(ck_pid, None)
         project = entry and Project.get_by_project_id(ck_pid, user_data.id_or_name())
         if project:
           entry['j'] = project.jscode
           entry['h'] = project.htmlcode
-          projects   = simplejson.dumps(entries)
+          projects   = json.dumps(entries)
     params = {
       'login_url':  users.create_login_url(self.request.url),
       'logout_url': users.create_logout_url(self.request.url),
@@ -268,8 +268,8 @@ class TopPageHandler(BaseHandler):
       'user_type':  user_type,
       'fake_utype': self.request.get('user', user_type),
       'project_id': 'null',
-      'samples':    self.fetch_samples(ck_pid),
-      'projects':   projects }
+      'samples':    self.fetch_samples(ck_pid).replace('/', "\\/"),
+      'projects':   projects.replace('/', "\\/") }
     if ck_pid:
       params['project_id'] = '"' + re.sub(self.SANITIZE_PROJECTID_RE, '', ck_pid) + '"'
     html = template.render('index.html', params)
@@ -300,7 +300,7 @@ class TopPageHandler(BaseHandler):
         entry['j'] = project.jscode
         entry['h'] = project.htmlcode
       result[project_id] = entry
-    result = simplejson.dumps(result)
+    result = json.dumps(result)
     memcache.set(cache_key, result, 60*60*24)
     return result
 
@@ -320,7 +320,7 @@ class CompileHandler(BaseHandler):
     jsSrc = unicode(self.request.body.strip(), 'utf-8')
     cache = memcache.get(self.__class__.MEMCACHE_PREFIX + jsSrc)
     if cache is not None:
-      cache = simplejson.loads(cache)
+      cache = json.loads(cache)
     else:
       cache = {}
     if not ('src' in cache and unicode(cache['src']) == jsSrc):
@@ -328,17 +328,17 @@ class CompileHandler(BaseHandler):
       rpc    = self.request_compilation(jsSrc)
       result = rpc.get_result()
       if result.status_code == 200:
-        cache = simplejson.loads(result.content)
+        cache = json.loads(result.content)
         cache['src'] = jsSrc
       else:
         cache = {
           'src': jsSrc,
           'compiledCode': '',
           'errors': [{'lineno': 0, 'error': 'Compilation request is failed.'}] }
-      memcache.set(self.__class__.MEMCACHE_PREFIX + jsSrc, simplejson.dumps(cache))
+      memcache.set(self.__class__.MEMCACHE_PREFIX + jsSrc, json.dumps(cache))
     del cache['src']
     self.response.headers['Content-Type'] = 'application/json'
-    self.response.out.write(simplejson.dumps(cache))
+    self.response.out.write(json.dumps(cache))
 
   def request_compilation(self, code):
     headers = {
@@ -373,7 +373,7 @@ class ProjectsHandler(BaseHandler):
     self.output_json({ 'j': project.jscode, 'h': project.htmlcode })
 
   def post(self):
-    req_body = simplejson.loads(self.request.body)
+    req_body = json.loads(self.request.body)
     self.validate_request(req_body, ('n', 'j', 'h'))
     self.output_json(db.run_in_transaction(self.handle_post, req_body))
 
@@ -389,7 +389,7 @@ class ProjectsHandler(BaseHandler):
 
   def put(self):
     key      = self.get_project_id()
-    req_body = simplejson.loads(self.request.body)
+    req_body = json.loads(self.request.body)
     self.validate_request(req_body, ())
     if key[0] == Project.PREFIX_PRIVATE:
       db.run_in_transaction(self.put_private, key, req_body)
@@ -450,7 +450,7 @@ class ProjectsHandler(BaseHandler):
 
   def output_json(self, data):
     self.response.headers['Content-Type'] = 'application/json'
-    self.response.out.write('while(1);' + simplejson.dumps(data))
+    self.response.out.write('while(1);' + json.dumps(data))
 
 
 class PublishHandler(BaseHandler):
@@ -463,7 +463,7 @@ class PublishHandler(BaseHandler):
   def process(self):
     if not users.is_current_user_admin():
       raise HttpError(403)
-    req_body = simplejson.loads(self.request.body)
+    req_body = json.loads(self.request.body)
     self.validate_request(req_body, ('n', 'j', 'h'))
     project = Project(name     = (req_body['n'] or ''),
                       jscode   = (req_body['j'] or ''),
@@ -481,7 +481,7 @@ class JsHandler(BaseHandler):
     self.process()
 
   def process(self):
-    req_body = simplejson.loads(self.request.body)
+    req_body = json.loads(self.request.body)
     self.validate_request(req_body, ('requires',))
     builder = ClosureBuilder()
     builder.build(req_body['requires'])
@@ -489,7 +489,7 @@ class JsHandler(BaseHandler):
       'code':   builder.get_code(),
       'errors': builder.get_errors() }
     self.response.headers['Content-Type'] = 'application/json'
-    self.response.out.write('while(1);' + simplejson.dumps(data))
+    self.response.out.write('while(1);' + json.dumps(data))
 
 
 class AdminHandler(BaseHandler):

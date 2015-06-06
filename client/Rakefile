@@ -14,7 +14,7 @@ DEPSWRITER      = File.join(CLOSURE_LIB_DIR, 'closure/bin/build/depswriter.py')
 CLOSUREBUILDER  = File.join(CLOSURE_LIB_DIR, 'closure/bin/build/closurebuilder.py')
 DEPS_FILE       = 'deps.js'
 SCRIPT_DIRS     = ['scripts', 'wgui']
-NAMESPACES      = ['closurekitchen', 'closuredocs']
+NAMESPACES      = ['closurekitchen']
 STATIC_DIR      = 'files'
 CODEMIRROR_DIR  = 'codemirror'
 CODEMIRROR_JS   = ['util.js','stringstream.js','select.js','undo.js','editor.js','tokenize.js']
@@ -80,9 +80,11 @@ task :deps do
       "--output_file=#{DEPS_FILE}"].flatten.join(' ')
 end
 
+task :build, 'optimize'
 task :build => [:index, :files, :script, :closurefiles, :closurejs] do
 end
 
+task :index, 'optimize'
 task :index do |t, args|
   opts            = OPTIMIZE_OPTIONS.dup
   opts[:optimize] = args['optimize'] != 'no'
@@ -93,6 +95,7 @@ task :index do |t, args|
   end
 end
 
+task :files, 'optimize'
 task :files do |t, args|
   copy_dir(STATIC_DIR, File.join(SERVER_DIR, STATIC_DIR))
 
@@ -125,6 +128,7 @@ task :files do |t, args|
   end
 end
 
+task :script, 'optimize'
 task :script do |t, args|
   opts            = OPTIMIZE_OPTIONS.dup
   opts[:optimize] = args['optimize'] != 'no'

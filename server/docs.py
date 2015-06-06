@@ -20,51 +20,46 @@ else:
   logging.info('Debug mode disabled.')
 
 class DocsHandler(webapp.RequestHandler):
-  BASE_URL  = r'http://closure-library.googlecode.com/svn/docs/'
+  BASE_URL  = r'http://google.github.io/closure-library/api/'
   REFLG     = re.M | re.I | re.S
-  HTML_RE   = re.compile(r'\.html$')
   URLATR_RE = re.compile(r'\s*(href|src)="([^\">]+)"', REFLG)
   URLATR    = r' \1="%s\2"' % BASE_URL
   SCRIPT_RE = re.compile(r'<script[\s>].*?</script>', REFLG)
-  HEADER_RE = re.compile(r'^<div id="header">.*?^</div>', REFLG)
-  COL2_RE   = re.compile(r'<div class="col2">.*?<\!-- Column 2 end -->\s*</div>', REFLG)
-  LINK_RE   = re.compile(r'<link[^>]*>', REFLG)
-  IMG_RE    = re.compile(r'<img[^>]*>', REFLG)
-  A_RE      = re.compile(r'<a[^>]*?href="(?:\.\./trunk/|[^\">]*.source.html)[^>]*>')
-  EXTERN_RE = re.compile(r'<a[^>]*?href="http:[^>]*>')
-  EXTRA_RE  = re.compile(r'</body>', REFLG)
+  HEADER_RE = re.compile(r'<header>.*?</header>', REFLG)
+  NAV_RE    = re.compile(r'<nav>.*?</nav>', REFLG)
+  A_RE      = re.compile(r'<a[^>]*?href="(?:source/)[^>]*>')
+  EXTERN_RE = re.compile(r'<a[^>]*?href="https?:[^>]*>')
   EXTRA     = """
 <style>
-.rightmenu .colleft { right:0; }
-.rightmenu .col1 { left:0; width:100%; }
-.goog-zippy-expanded, .goog-zippy-collapsed { outline:none; }
-.goog-zippy-expanded img  {
-  background-image: url('http://closure-library.googlecode.com/svn/docs/static/images/minus.png');
-}
-.goog-zippy-collapsed img {
-  background-image: url('http://closure-library.googlecode.com/svn/docs/static/images/plus.png');
-}
+  article { padding-top:0; margin-top:0; width:auto !important; }
 </style>
-<script src="../files/closuredocs.js"></script></body>"""
+</body>"""
 
   def get(self, fname):
     content = self.cache_file(fname)
     if content:
       self.response.out.write(content)
-      self.response.headers['Content-Type'] = 'text/html'
+      if fname.endswith('.html'):
+        self.response.headers['Content-Type'] = 'text/html'
+      elif fname.endswith('.js'):
+        self.response.headers['Content-Type'] = 'text/javascript'
+      elif fname.endswith('.css'):
+        self.response.headers['Content-Type'] = 'text/css'
+      else:
+        self.response.headers['Content-Type'] = 'text/plain'
     else:
       self.error(404)
       self.response.headers['Content-Type'] = 'text/plain'
       self.response.out.write('File Not Found')
 
   def cache_file(self, fname):
-    data = memcache.get(key='docs_' + fname)
+    data = memcache.get(key='docs2_' + fname)
     if data is not None:
       return data
     else:
       data = self.fetch_file(fname)
       if data is not None:
-        memcache.add(key='docs_' + fname, value=data, time=60*60)
+        memcache.add(key='docs2_' + fname, value=data, time=60*60)
         return data
       else:
         return None
@@ -75,15 +70,13 @@ class DocsHandler(webapp.RequestHandler):
     response = urlfetch.fetch(url)
     if response.status_code == 200:
       html = response.content
-      if re.search(self.HTML_RE, fname):
-        html = re.sub(self.SCRIPT_RE, '', html)
-        html = re.sub(self.HEADER_RE, '', html)
-        html = re.sub(self.COL2_RE, '', html)
-        html = re.sub(self.LINK_RE, self.expand_url, html)
-        html = re.sub(self.IMG_RE, self.expand_url, html)
-        html = re.sub(self.A_RE, self.modify_anchor, html)
-        html = re.sub(self.EXTERN_RE, self.external_link, html)
-        html = re.sub(self.EXTRA_RE, self.EXTRA, html)
+      if fname.endswith('.html'):
+        html = self.SCRIPT_RE.sub('', html)
+        html = self.HEADER_RE.sub('', html)
+        html = self.NAV_RE.sub('', html)
+        html = self.A_RE.sub(self.modify_anchor, html)
+        html = self.EXTERN_RE.sub(self.external_link, html)
+        html = html + self.EXTRA
       return html
     else:
       logging.info('Failed to fetch %s.' % url)

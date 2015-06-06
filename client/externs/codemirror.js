@@ -58,7 +58,7 @@ CodeMirror.prototype.selection = function() {};
  * Will also cause the editor frame to gain focus.
  * @param {string} str The new string.
  */
-CodeMirror.prototype.replaceSelection = function() {};
+CodeMirror.prototype.replaceSelection = function(str) {};
 
 /**
  * Automatically re-indent the whole document.
@@ -163,7 +163,7 @@ CodeMirror.prototype.cursorCoords = function(start) {};
  *     startpoint or the endpoint of the selection is used.
  * @returns {{line:number, character:number}} The cursor position.
  */
-CodeMirror.prototype.cursorPosition = function(start) {};
+CodeMirror.prototype.cursorPosition = function(opt_start) {};
 
 /**
  * Editor object

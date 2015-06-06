@@ -24,9 +24,9 @@
   <script type="text/javascript">
 	var startupInfo = {
 	  userType:  '{{user_type}}',
-	  projectId: {{project_id}},
-	  samples:   {{samples}},
-	  projects:  {{projects}}
+	  projectId: {{project_id|safe}},
+	  samples:   {{samples|safe}},
+	  projects:  {{projects|safe}}
     };
   </script>
   <style type="text/css">

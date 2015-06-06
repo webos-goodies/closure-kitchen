@@ -116,7 +116,7 @@ closurekitchen.ComponentBuilder.handleActionText_ = function(e) {
 
 /**
  * This function is called when the enter key is pressed in a text input.
- * @param {goog.ui.Component} component The target component.
+ * @param {goog.ui.Component} target The target component.
  * @private
  */
 closurekitchen.ComponentBuilder.delayedActionText_ = function(target) {

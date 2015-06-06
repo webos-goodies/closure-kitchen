@@ -28,7 +28,7 @@ closurekitchen.PreviewTab.prototype.iframe_;
 
 /**
  * Processes exceptions raised in the preview frame.
- * @param {Object} The exception information.
+ * @param {Object} info The exception information.
  * @private
  */
 closurekitchen.PreviewTab.processException_ = function(info) {

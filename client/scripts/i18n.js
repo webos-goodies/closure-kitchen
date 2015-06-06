@@ -72,13 +72,7 @@ closurekitchen.i18n.msg.ja_JP = {
  * Message catalog in the current language.
  * @type {Object.<string,string>}
  */
-closurekitchen.i18n.msg.current;
-
-if(goog.LOCALE == 'ja' || true) {
-  closurekitchen.i18n.msg.current = closurekitchen.i18n.msg.ja_JP;
-} else {
-  closurekitchen.i18n.msg.current = closurekitchen.i18n.msg.en_US;
-}
+closurekitchen.i18n.msg.current = closurekitchen.i18n.msg.ja_JP;
 
 /**
  * Implementation of goog.getMsg for use with localized messages.

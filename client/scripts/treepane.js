@@ -238,7 +238,7 @@ closurekitchen.TreePane.prototype.getSelectedProjectId = function() {
 
 /**
  * Dispatches specified action event.
- * @param {closurekitchen.ActionID} action Action ID.
+ * @param {closurekitchen.ActionID} actionId Action ID.
  * @return {boolean} True if the event is dispatched, false otherwise.
  * @private
  */

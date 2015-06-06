@@ -805,8 +805,8 @@ closurekitchen.App.prototype.updatePreview_ = function(requires, jsCode, htmlCod
  * @private
  */
 closurekitchen.App.prototype.loadReference_ = function() {
-  closurekitchen.App.logger_.info('Load files/doc_json_index.js...');
-  goog.net.XhrIo.send('docs/doc_json_index.js', goog.bind(this.loadReferenceComplete_, this));
+  closurekitchen.App.logger_.info('Load docs/types.js...');
+  goog.net.XhrIo.send('docs/types.js', goog.bind(this.loadReferenceComplete_, this));
 };
 
 /**
@@ -816,11 +816,15 @@ closurekitchen.App.prototype.loadReference_ = function() {
  */
 closurekitchen.App.prototype.loadReferenceComplete_ = function(e) {
   if(e.target.isSuccess()) {
-	closurekitchen.App.logger_.info('files/doc_json_index.js is loaded.');
+	closurekitchen.App.logger_.info('docs/types.js is loaded.');
 	this.referenceMap_ = {};
-	var json = e.target.getResponseJson();
-	this.parseReferenceIndex_(json['typeIndex'][2], '.', '');
-	this.parseReferenceIndex_(json['fileIndex'][2]['closure'][2], '/', '');
+	var body = e.target.getResponseText().replace(/^[^\{]*|\;\s*$/g, '');
+    var json = JSON.parse(body);
+    goog.array.forEach(json['types'], function(entry) {
+      this.referenceMap_[entry['name']] = entry['href'];
+    }, this);
+	// this.parseReferenceIndex_(json['typeIndex'][2], '.', '');
+	// this.parseReferenceIndex_(json['fileIndex'][2]['closure'][2], '/', '');
 	this.editorPane_.setSearchCompletion(goog.object.getKeys(this.referenceMap_).sort());
 	closurekitchen.App.logger_.info('Finished to set up auto-completion.');
   } else {

@@ -25,7 +25,6 @@ var ActionEvent    = closurekitchen.ActionEvent;
 /**
  * A component that contains JavaScript / HTML editors and a preview.
  * @param {closurekitchen.Project} project Project instance.
- * @param {closurekitchen.User} user The current user information.
  * @param {goog.dom.domHelper=} opt_domHelper A goog.dom.DomHelper instance.
  * @constructor
  * @extends {goog.ui.Component}
@@ -280,7 +279,6 @@ closurekitchen.EditorPane.prototype.findPrevious = function(text) {
 /**
  * Calls createDom() for all children.
  * @param {goog.ui.Component} component The parent component.
- * @param {Array.<goog.ui.Component>} opt_children The child components.
  * @private
  */
 closurekitchen.EditorPane.prototype.createChildDom_ = function(component) {
